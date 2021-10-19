@@ -77,7 +77,7 @@ int start(size_t thread_count) {
     // TODO your code here, make sure to use thread_count!
     // Remember to ONLY crack passwords in other threads
 
-    q_task = queue_create(0);
+    tasks = queue_create(0);
     pthread_t arr[thread_count];
     size_t len = 0;
     char* line = NULL;
@@ -87,7 +87,7 @@ int start(size_t thread_count) {
             line[strlen(line) - 1] = '\0';
         }   
         queue_push(q_task, strdup(line));
-        total_num++;
+        num_tasks++;
     }
 
     free(line);
@@ -104,9 +104,9 @@ int start(size_t thread_count) {
         pthread_join(arr[i], NULL);
     }
 
-    v1_print_summary(success, total_num - success);
+    v1_print_summary(recovered_num, num_tasks - recovered_num);
 
-    pthread_mutex_destroy(&mux);
+    pthread_mutex_destroy(&lock );
     queue_destroy(q_task);
 
     return 0; // DO NOT change the return code since AG uses it to check if your
