@@ -86,14 +86,14 @@ int start(size_t thread_count) {
         if (strlen(line)>0 && line[strlen(line) - 1] == '\n') {
             line[strlen(line) - 1] = '\0';
         }   
-        queue_push(q_task, strdup(line));
+        queue_push(tasks, strdup(line));
         num_tasks++;
     }
 
     free(line);
     
     for(size_t i = 0; i < thread_count; i++) {
-        queue_push(q_task, NULL);
+        queue_push(tasks, NULL);
     }
 
     for(size_t i = 0; i < thread_count; i++) {
@@ -107,7 +107,7 @@ int start(size_t thread_count) {
     v1_print_summary(recovered_num, num_tasks - recovered_num);
 
     pthread_mutex_destroy(&lock );
-    queue_destroy(q_task);
+    queue_destroy(tasks);
 
     return 0; // DO NOT change the return code since AG uses it to check if your
               // program exited normally
