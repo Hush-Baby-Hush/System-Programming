@@ -24,9 +24,9 @@ static int recovered_num;
 
 void* crack_password(void* thread_num) {
     size_t index = (size_t) thread_num;
-    char username[10];
-    char hash[16];
-    char known[16];
+    char username[9];
+    char hash[14];
+    char known[9];
     struct crypt_data cdata;
     cdata.initialized = 0;
     char* task = NULL;
