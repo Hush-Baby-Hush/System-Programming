@@ -17,7 +17,7 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 // task queue
 static queue* tasks;
 // total number of tasks
-static size_t num_tasks;
+static int num_tasks;
 // number of cracked passwords
 static int recovered_num;
 
