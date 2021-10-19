@@ -76,48 +76,40 @@ void* crack_password(void* thread_num) {
 int start(size_t thread_count) {
     // TODO your code here, make sure to use thread_count!
     // Remember to ONLY crack passwords in other threads
-    
-    // initialize 
-    tasks = queue_create(100);
-    pthread_t tids[thread_count];
-    
-    // getline to get all tasks
-    size_t length = 0;
-    char* buffer = NULL;
-    while(getline(&buffer, &length, stdin) != -1) {
-        // replace newline
-        if (strlen(buffer) >= 1 && buffer[strlen(buffer) - 1] == '\n') {
-            buffer[strlen(buffer) - 1] = '\0';
+
+    q_task = queue_create(0);
+    pthread_t arr[thread_count];
+    size_t len = 0;
+    char* line = NULL;
+
+    while(getline(&line, &len, stdin) != -1) {
+        if (strlen(line)>0 && line[strlen(line) - 1] == '\n') {
+            line[strlen(line) - 1] = '\0';
         }   
-        queue_push(tasks, strdup(buffer));
-        num_tasks++;
+        queue_push(q_task, strdup(line));
+        total_num++;
     }
 
-    size_t i = 0;
-    for(; i < thread_count; i++) {
-        queue_push(tasks, NULL);
+    free(line);
+    
+    for(size_t i = 0; i < thread_count; i++) {
+        queue_push(q_task, NULL);
     }
 
-    // create threads
-    i = 0;
-    for(; i < thread_count; i++) {
-        pthread_create(tids + i, NULL, crack_password, (void*) i + 1 /* index of thread is 1-indexed */);
+    for(size_t i = 0; i < thread_count; i++) {
+        pthread_create(arr + i, NULL, crack_password, (void*) i + 1);
     }
 
-    // wait for threads
-    i = 0;
-    for(; i < thread_count; i++) {
-        pthread_join(tids[i], NULL);
+    for(size_t i = 0; i < thread_count; i++) {
+        pthread_join(arr[i], NULL);
     }
 
-    v1_print_summary(recovered_num, num_tasks - recovered_num);
+    v1_print_summary(success, total_num - success);
 
-    // free stuff
-    free(buffer);
-    buffer = NULL;
-    queue_destroy(tasks);
-    pthread_mutex_destroy(&lock);
+    pthread_mutex_destroy(&mux);
+    queue_destroy(q_task);
 
     return 0; // DO NOT change the return code since AG uses it to check if your
               // program exited normally
 }
+
