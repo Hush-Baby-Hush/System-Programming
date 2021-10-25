@@ -94,12 +94,7 @@ $(EXE_PARMAKE)-debug-tsan: $(OBJS_PARMAKE:%.o=$(OBJS_DIR)/%-debug-tsan.o)
 $(EXE_PARMAKE)-tsan: $(OBJS_PARMAKE:%.o=$(OBJS_DIR)/%-tsan.o)
 	$(LD) $^ $(LDFLAGS_TSAN) -o $@
 
-.PHONY: clean
-clean:
-	-rm -rf .objs $(EXES_STUDENT)\
-		$(EXES_STUDENT:%=%-tsan)\
-		$(EXES_STUDENT:%=%-debug)\
-		$(EXES_STUDENT:%=%-debug-tsan)
+
 
 
 a: b c
@@ -108,3 +103,11 @@ b: c
     echo B
 c:
     echo C
+
+
+.PHONY: clean
+clean:
+	-rm -rf .objs $(EXES_STUDENT)\
+		$(EXES_STUDENT:%=%-tsan)\
+		$(EXES_STUDENT:%=%-debug)\
+		$(EXES_STUDENT:%=%-debug-tsan)
