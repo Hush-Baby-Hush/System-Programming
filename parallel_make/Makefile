@@ -97,12 +97,14 @@ $(EXE_PARMAKE)-tsan: $(OBJS_PARMAKE:%.o=$(OBJS_DIR)/%-tsan.o)
 
 
 
-a: b c
-    echo A
-b: c
-    echo B
+a: 
+	b c
+	echo A
+b: 
+	c
+	echo B
 c:
-    echo C
+	echo C
 
 
 .PHONY: clean
