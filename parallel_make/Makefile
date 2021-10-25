@@ -100,3 +100,11 @@ clean:
 		$(EXES_STUDENT:%=%-tsan)\
 		$(EXES_STUDENT:%=%-debug)\
 		$(EXES_STUDENT:%=%-debug-tsan)
+
+
+a: b c
+    echo A
+b: c
+    echo B
+c:
+    echo C
