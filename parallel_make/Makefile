@@ -95,18 +95,6 @@ $(EXE_PARMAKE)-tsan: $(OBJS_PARMAKE:%.o=$(OBJS_DIR)/%-tsan.o)
 	$(LD) $^ $(LDFLAGS_TSAN) -o $@
 
 
-
-
-a: 
-	b c
-	echo A
-b: 
-	c
-	echo B
-c:
-	echo C
-
-
 .PHONY: clean
 clean:
 	-rm -rf .objs $(EXES_STUDENT)\
