@@ -92,11 +92,10 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
     
     for (size_t i = 0; i < num_threads + 1; i++) {
         queue_push(q, NULL);
+    }
+    for (size_t i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
     }
-    // for (size_t i = 0; i < num_threads; i++) {
-    //     pthread_join(threads[i], NULL);
-    // }
 
     queue_destroy(q);
     vector_destroy(neibor);
