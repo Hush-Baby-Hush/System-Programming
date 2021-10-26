@@ -28,8 +28,8 @@ dictionary* d = NULL;
 size_t thread_count = 0;
 
 void quu_push(char* ptr);
-int is_cyclic(void* ptr);
-int is_cyclic_helper(void* ptr);
+int setup(void* ptr);
+int detect_cycle(void* ptr);
 void* part2(void* ptr);
 
 
@@ -53,7 +53,7 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
 
     for (size_t i = 0; i < vector_size(neibor); i++) {
         char* curr = vector_get(neibor, i);
-        if (is_cyclic((void*)curr) == 1) {
+        if (setup((void*)curr) == 1) {
             print_cycle_failure(curr);
             rule_t* rul = (rule_t*) graph_get_vertex_value(g, (void*)curr);
             rul->state = -1;
@@ -129,48 +129,47 @@ void quu_push(char* ptr) {
 }
 
 
-int is_cyclic(void* goal) {
-    //set up cycle detection
+int setup(void* ptr) {
+    vector* vecname = graph_vertices(g);
+
     int zero = 0;
-    vector* vertices = graph_vertices(g);
-    /*
-    Vector iteration macro. `vecname` is the name of the vector. `varname` is the
-    name of a temporary (local) variable to refer to each element in the vector,
-    and `callback` is a block of code that gets executed once for each element in
-    the vector until `break;` is called.
-    */
-   VECTOR_FOR_EACH(vertices, curr, {dictionary_set(d, curr, &zero);});
-   vector_destroy(vertices);
-   int exit = is_cyclic_helper(goal);
-   return exit;
+    VECTOR_FOR_EACH(vecname, 
+        varname, 
+        {dictionary_set(d, varname, &zero);});
+    vector_destroy(vecname);
+    return detect_cycle(ptr);
 }
 
-int is_cyclic_helper(void* goal) {
-    if (!dictionary_contains(d, goal)) {
+int detect_cycle(void* ptr) {
+    if (!dictionary_contains(d, ptr)) {
         return 0;
     }
-    //visited;in progress; -> cycle detected
-    if (*(int*)dictionary_get(d, goal) == 1) {
+
+    if (*(int*)dictionary_get(d, ptr) == 1) {
         return 1;
     }
-    //finished
-    if(*(int*)dictionary_get(d, goal) == 2) {
+
+    if(*(int*)dictionary_get(d, ptr) == 2) {
         return 2;
     }
-    int one = 1;
-    dictionary_set(d, goal, &one);
 
-    vector* neighborhood = graph_neighbors(g, goal);
-    for (size_t i = 0; i < vector_size(neighborhood); i++) {
-        void* curr = vector_get(neighborhood, i);
-        if (is_cyclic_helper(curr) == 1) {
-            vector_destroy(neighborhood);
+    vector* neibor = graph_neighbors(g, ptr);
+    size_t total_neibor = vector_size(neibor);
+
+    int one = 1;
+    dictionary_set(d, ptr, &one);
+
+    for (size_t i = 0; i < total_neibor; i++) {
+        void* curr = vector_get(neibor, i);
+        if (detect_cycle(curr) == 1) {
+            vector_destroy(neibor);
             return 1;
         }
     }
+
     int two = 2;
-    dictionary_set(d, goal, &two);
-    vector_destroy(neighborhood);
+    dictionary_set(d, ptr, &two);
+    vector_destroy(neibor);
     return 0;
 }
 
