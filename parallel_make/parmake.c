@@ -54,15 +54,15 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
         char* curr = vector_get(neibor, i);
         if (setup((void*)curr) == 1) {
             print_cycle_failure(curr);
-            //rule_t* curr_rule = (rule_t*) graph_get_vertex_value(g, (void*)curr);
-            (rule_t*) graph_get_vertex_value(g, (void*)curr)->state = -1;
+            rule_t* rul = (rule_t*) graph_get_vertex_value(g, (void*)curr);
+            rul->state = -1;
             vector_erase(neibor, i);
             i--;
         }
     }
 
-    //rule_t* root = graph_get_vertex_value(g, "");
-    graph_get_vertex_value(g, "")->state = vector_size(neibor);
+    rule_t* ru = graph_get_vertex_value(g, "");
+    ru->state = vector_size(neibor);
 
     int zero = 0;
     vector* vertices = graph_vertices(g);
@@ -185,8 +185,8 @@ void* part2(void* ptr) {
         int check_stat = 0;
         struct stat stat_;
 
-        //rule_t* val = (rule_t*)graph_get_vertex_value(g, curr);
-        if (stat((rule_t*)graph_get_vertex_value(g, curr)->curr, &stat_) == -1) {
+        rule_t* val = (rule_t*)graph_get_vertex_value(g, curr);
+        if (stat(val->curr, &stat_) == -1) {
             check_stat = 1;
         }
         
@@ -197,9 +197,9 @@ void* part2(void* ptr) {
             VECTOR_FOR_EACH(neibor, 
                 varname, 
                 {
-                    //rule_t* temp_rule = (rule_t*)graph_get_vertex_value(g, varname);
+                    rule_t* tempr = (rule_t*)graph_get_vertex_value(g, varname);
                     struct stat stat2;
-                    if (stat((rule_t*)graph_get_vertex_value(g, varname)->curr, &stat2) == -1 || stat2.st_mtime > stat_.st_mtime) {
+                    if (stat(tempr->curr, &stat2) == -1 || stat2.st_mtime > stat_.st_mtime) {
                         check_stat = 1;
                         break;
                     }
@@ -208,7 +208,7 @@ void* part2(void* ptr) {
         }
 
         if (check_stat) {
-            VECTOR_FOR_EACH((rule_t*)graph_get_vertex_value(g, curr)->commands, 
+            VECTOR_FOR_EACH(val->commands, 
                 varname, 
                 {
                     if (system(varname)) {
