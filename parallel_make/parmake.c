@@ -46,7 +46,8 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
 
     vector* neibor = graph_neighbors(g, "");
     if (vector_empty(neibor)) {
-        graph_get_vertex_value(g, "")->state = vector_size(neibor);
+        rule_t* ru = graph_get_vertex_value(g, "");
+        ru->state = vector_size(neibor);
         return 0;
     }
 
