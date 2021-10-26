@@ -75,7 +75,7 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
 
     VECTOR_FOR_EACH(neibor, 
         varname, 
-        {quu_push(varname);});
+        {push_to_queue(varname);});
 
     dictionary_destroy(d);
 
