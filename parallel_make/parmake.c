@@ -187,7 +187,7 @@ void* part2(void* ptr) {
         struct stat stat_;
 
         rule_t* val = (rule_t*)graph_get_vertex_value(g, curr);
-        if (stat(val->curr, &stat_) == -1) {
+        if (stat(val->target, &stat_) == -1) {
             check_stat = 1;
         }
         
@@ -200,7 +200,7 @@ void* part2(void* ptr) {
                 {
                     rule_t* tempr = (rule_t*)graph_get_vertex_value(g, varname);
                     struct stat stat2;
-                    if (stat(tempr->curr, &stat2) == -1 || stat2.st_mtime > stat_.st_mtime) {
+                    if (stat(tempr->target, &stat2) == -1 || stat2.st_mtime > stat_.st_mtime) {
                         check_stat = 1;
                         break;
                     }
