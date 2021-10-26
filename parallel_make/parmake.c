@@ -27,7 +27,7 @@ queue* q = NULL;
 dictionary* d = NULL;
 size_t thread_count = 0;
 
-void quu_push(char* ptr);
+void push_to_queue(char* ptr);
 int setup(void* ptr);
 int detect_cycle(void* ptr);
 void* part2(void* ptr);
@@ -36,52 +36,70 @@ void* part2(void* ptr);
 
 int parmake(char *makefile, size_t num_threads, char **targets) {
     // good luck!
-    //set up
+
+    q = queue_create(-1);
     d = string_to_int_dictionary_create();
     g = parser_parse_makefile(makefile, targets);
-    q = queue_create(-1);
-    pthread_t pids[num_threads];
-    vector* goals = graph_neighbors(g, "");
-    //detect cycle
-    for (size_t i = 0; i < vector_size(goals); i++) {
-        char* curr = vector_get(goals, i);
+    if (num_threads < 1) {
+        return 0;
+    }
+
+    vector* neibor = graph_neighbors(g, "");
+    if (vector_empty(neibor)) {
+        rule_t* ru = graph_get_vertex_value(g, "");
+        ru->state = vector_size(neibor);
+        return 0;
+    }
+
+    for (size_t i = 0; i < vector_size(neibor); i++) {
+        char* curr = vector_get(neibor, i);
         if (setup((void*)curr) == 1) {
             print_cycle_failure(curr);
-            rule_t* curr_rule = (rule_t*) graph_get_vertex_value(g, (void*)curr);
-            curr_rule->state = -1;
-            vector_erase(goals, i);
+            rule_t* rul = (rule_t*) graph_get_vertex_value(g, (void*)curr);
+            rul->state = -1;
+            vector_erase(neibor, i);
             i--;
         }
     }
 
-    rule_t *root = graph_get_vertex_value(g, "");
-    root->state = vector_size(goals);
-    if (vector_empty(goals)) {return 0;}
-    //push goals to the queue
+    rule_t* ru = graph_get_vertex_value(g, "");
+    ru->state = vector_size(neibor);
+
     int zero = 0;
     vector* vertices = graph_vertices(g);
-    VECTOR_FOR_EACH(vertices, curr, {dictionary_set(d, curr, &zero);});
+    VECTOR_FOR_EACH(vertices, 
+        varname, 
+        {dictionary_set(d, varname, &zero);});
+
     vector_destroy(vertices);
-    VECTOR_FOR_EACH(goals, vtx, {quu_push(vtx);});
-    //multi thread set up and calculation
+
+    VECTOR_FOR_EACH(neibor, 
+        varname, 
+        {quu_push(varname);});
+
     dictionary_destroy(d);
+
+    pthread_t threads[num_threads];
     for (size_t i = 0; i < num_threads; i++) {
-        pthread_create(pids + i, NULL, part2, NULL);
+        pthread_create(threads + i, NULL, part2, NULL);
     }
+
     pthread_mutex_lock(&mux);
-    while (thread_count != vector_size(goals)) {
+    while (thread_count != vector_size(neibor)) {
         pthread_cond_wait(&cond, &mux);
     }
     pthread_mutex_unlock(&mux);
+    
     for (size_t i = 0; i < num_threads + 1; i++) {
         queue_push(q, NULL);
     }
     for (size_t i = 0; i < num_threads; i++) {
-        pthread_join(pids[i], NULL);
+        pthread_join(threads[i], NULL);
     }
-    vector_destroy(goals);
-    graph_destroy(g);   
+
     queue_destroy(q);
+    vector_destroy(neibor);
+    graph_destroy(g);   
     pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&mux);
     return 0;
@@ -89,25 +107,17 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
 
 
 
-void quu_push(char* ptr) {
-    if (*(int*)dictionary_get(d, ptr) == 1) {
-        return;
-    }
+void push_to_queue(char *target) {
+    if (*(int*)dictionary_get(d, target) == 1) return;
     int one = 1;
-    dictionary_set(d, ptr, &one);
-
-    vector* neibor = graph_neighbors(g, ptr);
-    VECTOR_FOR_EACH(neibor, 
-        varname, 
-        {quu_push(varname);});
-
-    rule_t* val = (rule_t *)graph_get_vertex_value(g, ptr);
-    val->state = vector_size(neibor);
-
-    if (vector_empty(neibor)) {
-        queue_push(q, ptr);
-    }
-    vector_destroy(neibor);
+    dictionary_set(d, target, &one);
+    vector* dependencies = graph_neighbors(g, target);
+    //push for each item in dependencies
+    VECTOR_FOR_EACH(dependencies, vt, {push_to_queue(vt);});
+    if (vector_empty(dependencies)) queue_push(q, target);
+    rule_t *rule = (rule_t *)graph_get_vertex_value(g, target);
+    rule->state = vector_size(dependencies);
+    vector_destroy(dependencies);
 }
 
 
