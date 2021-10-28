@@ -2,6 +2,7 @@
  * mapreduce
  * CS 241 - Fall 2021
  */
+ // reference: https://github.com/Haoyuliu-ooyu/UIUC-System-Programming/blob/master/mapreduce/mapreduce.c
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,31 +31,36 @@ int main(int argc, char **argv) {
     // Print nonzero subprocess exit codes.
 
     // Count the number of lines in the output file.
+    if (argc != 6) {
+        print_usage();
+        return 1;
+    }
 
-    char* input_file = argv[1];
-    char* output_file = argv[2];
-    char* mapper = argv[3];
-    char* reducer = argv[4];
+    //char* input_file = argv[1];
+    //char* output_file = argv[2];
     int mapper_count;
-    sscanf(argv[5], "%d", &mapper_count);
+    if (sscanf(argv[5], "%d", &mapper_count != 1) || mapper_count < 1) {
+      print_usage();
+      return 1;
+    }
+
+    //char* mapper = argv[3];
+    //char* reducer = argv[4];
     int* fd[mapper_count];
-    int i = 0;
-    for (;i< mapper_count; i++) {
+    for (int i = 0; i< mapper_count; i++) {
         fd[i] = calloc(2, sizeof(int));
         pipe(fd[i]);
     }
-    // Create one input pipe for the reducer.
-    int fd_reducer[2];
-    pipe(fd_reducer);
-    // Open the output file.
-    int open_file = open(output_file, O_CREAT | O_WRONLY | O_TRUNC, S_IWUSR | S_IRUSR);
+    int fd_r[2];
+    pipe(fd_r);
+    char* output_file = argv[2];
+    int file = open(output_file, O_CREAT | O_WRONLY | O_TRUNC, S_IWUSR | S_IRUSR);
 
-    // Start a splitter process for each mapper.
     pid_t child_split[mapper_count];
-    i = 0;
-    for (; i< mapper_count; i++){
+    char* input_file = argv[1];
+    for (int i = 0; i< mapper_count; i++){
         child_split[i] = fork();
-        if (child_split[i] == 0) { //child process
+        if (!child_split[i]) { 
             close(fd[i][0]);
             char temp[16];
             sprintf(temp, "%d", i);
@@ -63,55 +69,50 @@ int main(int argc, char **argv) {
             exit(1);
         }
     }
-    // Start all the mapper processes.
     pid_t child_mapping[mapper_count];
-    i = 0;
-    for (; i < mapper_count; i++) {
+    char* mapper = argv[3];
+    for (int i = 0; i < mapper_count; i++) {
         close(fd[i][1]);
         child_mapping[i] = fork();
-        if (child_mapping[i] == 0) {
-            close(fd_reducer[0]);
+        if (!child_mapping[i]) {
+            close(fd_r[0]);
             dup2(fd[i][0], 0);
-            dup2(fd_reducer[1], 1);
+            dup2(fd_r[1], 1);
             execl(mapper, mapper, NULL);
             exit(1);
         }
     }
-    // Start the reducer process.
-    close(fd_reducer[1]);
-    pid_t child = fork();
-    if (child == 0) {
-        dup2(fd_reducer[0], 0);
-        dup2(open_file, 1);
+    close(fd_r[1]);
+    //pid_t child = ;
+    char* reducer = argv[4];
+    if (!fork()) {
+        dup2(fd_r[0], 0);
+        dup2(file, 1);
         execl(reducer, reducer, NULL);
         exit(1);
     }
-    close(open_file);
-    close(fd_reducer[0]);
-
-    // Wait for the reducer to finish.
-    i = 0;
-    for (; i < mapper_count; i++) {
-        int s;
-        waitpid(child_split[i], &s, 0);
+    close(fd_r[0]);
+    close(file);
+    
+    for (int i = 0; i < mapper_count; i++) {
+        int st;
+        waitpid(child_split[i], &st, 0);
     } 
-    i = 0;
-    for (; i < mapper_count; i++) {
+    
+    for (int i = 0; i < mapper_count; i++) {
         close(fd[i][0]);
-        int s;
-        waitpid(child_mapping[i], &s, 0);
+        int st;
+        waitpid(child_mapping[i], &st, 0);
     }
-    int s;
-    waitpid(child, &s, 0);
-    // Print nonzero subprocess exit codes.
-    if (s) {
-        print_nonzero_exit_status(reducer, s);
+    int st;
+    waitpid(child, &st, 0);
+    if (st) {
+        print_nonzero_exit_status(reducer, st);
     }
 
-    // Count the number of lines in the output file.
     print_num_lines(output_file);
-    i = 0;
-    for (; i< mapper_count; i++) {
+    
+    for (int i = 0; i< mapper_count; i++) {
         free(fd[i]);
     }
     return 0;
