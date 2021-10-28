@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     //char* input_file = argv[1];
     //char* output_file = argv[2];
     int mapper_count;
-    if (sscanf(argv[5], "%d", &mapper_count != 1) || mapper_count < 1) {
+    if (sscanf(argv[5], "%d", &mapper_count) != 1 || mapper_count < 1) {
       print_usage();
       return 1;
     }
@@ -83,9 +83,9 @@ int main(int argc, char **argv) {
         }
     }
     close(fd_r[1]);
-    //pid_t child = ;
+    pid_t child = fork();
     char* reducer = argv[4];
-    if (!fork()) {
+    if (!child) {
         dup2(fd_r[0], 0);
         dup2(file, 1);
         execl(reducer, reducer, NULL);
