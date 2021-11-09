@@ -37,9 +37,6 @@ static char *block_info_string(ssize_t num_used_blocks) {
 }
 
 
-
-
-
 // Don't modify this line unless you know what you're doing
 int minixfs_virtual_path_count =
     sizeof(minixfs_virtual_path_names) / sizeof(minixfs_virtual_path_names[0]);
