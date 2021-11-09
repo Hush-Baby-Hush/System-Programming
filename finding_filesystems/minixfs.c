@@ -176,11 +176,12 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
     }
 
     inode* inode = get_inode(fs, path);
+    data_block_number* result;
     if(div >= NUM_DIRECT_BLOCKS){
-        data_block_number* result = (data_block_number*)(fs->data_root + inode->indirect);
+        result = (data_block_number*)(fs->data_root + inode->indirect);
         div -= NUM_DIRECT_BLOCKS;
     } else {
-        data_block_number* result = inode->direct;
+        result = inode->direct;
     }
 
     void * memblock = (void*) (fs->data_root + result[div]) + mod;
@@ -196,10 +197,10 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
         }
 
         if(div >= NUM_DIRECT_BLOCKS){
-            data_block_number* result = (data_block_number*)(fs->data_root + inode->indirect);
+            result = (data_block_number*)(fs->data_root + inode->indirect);
             div -= NUM_DIRECT_BLOCKS;
         } else {
-            data_block_number* result = inode->direct;
+            result = inode->direct;
         }
         memblock = (void*) (fs->data_root + result[div]);
         memcpy(memblock, buf + wrcount, len);
@@ -239,20 +240,22 @@ ssize_t minixfs_read(file_system *fs, const char *path, void *buf, size_t count,
         count = inode->size - *off;
     }
     size_t mod = *off % sizeof(data_block);
+    uint64_t size;
     if (count + mod > sizeof(data_block)) {
-        uint64_t size = sizeof(data_block) - mod;
+        size = sizeof(data_block) - mod;
     } 
     else {
-        uint64_t size = count;
+        size = count;
     }
 
     uint64_t div = *off / sizeof(data_block);
+    data_block_number* result;
     if(div >= NUM_DIRECT_BLOCKS){
-        data_block_number* result = (data_block_number*)(fs->data_root + inode->indirect);
+        result = (data_block_number*)(fs->data_root + inode->indirect);
         div -= NUM_DIRECT_BLOCKS;
     } 
     else {
-        data_block_number* result = inode->direct;
+        result = inode->direct;
     }
     void* memblock = (void*) (fs->data_root + result[div]) + mod;
     memcpy(buf, memblock, size);
@@ -268,11 +271,11 @@ ssize_t minixfs_read(file_system *fs, const char *path, void *buf, size_t count,
             size = sizeof(data_block);
         }
         if(div >= NUM_DIRECT_BLOCKS){
-            data_block_number* result = (data_block_number*)(fs->data_root + inode->indirect);
+            result = (data_block_number*)(fs->data_root + inode->indirect);
             div -= NUM_DIRECT_BLOCKS;
         } 
         else {
-            data_block_number* result = inode->direct;
+            result = inode->direct;
         }
         memblock = (void*) (fs->data_root + result[div]);
         memcpy(buf + readcount, memblock, size);
