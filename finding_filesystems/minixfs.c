@@ -53,7 +53,7 @@ int minixfs_chmod(file_system *fs, char *path, int new_permissions) {
     }
     uint16_t temp = inode->mode >> RWX_BITS_NUMBER;
     inode->mode = new_permissions | (temp << RWX_BITS_NUMBER);
-    struct timespec currtime = &(inode->ctim)
+    struct timespec currtime = &(inode->ctim);
     clock_gettime(CLOCK_REALTIME, currtime);
     return 0;
 }
@@ -71,7 +71,7 @@ int minixfs_chown(file_system *fs, char *path, uid_t owner, gid_t group) {
     if (group != ((gid_t)-1)){
         inode->gid = group;
     }
-    struct timespec currtime = &(inode->ctim)
+    struct timespec currtime = &(inode->ctim);
     clock_gettime(CLOCK_REALTIME, currtime);
 
     // clock_gettime(CLOCK_REALTIME, &(inode->ctim));
@@ -80,12 +80,8 @@ int minixfs_chown(file_system *fs, char *path, uid_t owner, gid_t group) {
 
 inode *minixfs_create_inode_for_path(file_system *fs, const char *path) {
     // Land ahoy!
-    if (valid_filename(path) == 1) {
+    if (valid_filename(path) == 1 || get_inode(fs, path)) {
         return NULL;
-    }
-    if (get_inode(fs, path))
-    {
-        return NULL
     }
 
     const char* file = NULL;
@@ -115,7 +111,7 @@ inode *minixfs_create_inode_for_path(file_system *fs, const char *path) {
         data_block_number* result = (data_block_number*)(fs->data_root + parent->indirect);
         div -= NUM_DIRECT_BLOCKS;
     } 
-    else {
+    else if(div < NUM_DIRECT_BLOCKS){
         data_block_number* result = parent->direct;
     }
 
@@ -178,8 +174,7 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
     size_t mod = *off % sizeof(data_block);
     if (count + mod > sizeof(data_block)) {
         uint64_t len = sizeof(data_block) - mod;
-    } 
-    else {
+    } else {
         uint64_t len = count;
     }
 
@@ -187,8 +182,7 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
     if(div >= NUM_DIRECT_BLOCKS){
         data_block_number* result = (data_block_number*)(fs->data_root + inode->indirect);
         div -= NUM_DIRECT_BLOCKS;
-    } 
-    else {
+    } else {
         data_block_number* result = inode->direct;
     }
 
@@ -200,16 +194,14 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
     while (wrcount < count) {
         if (count - wrcount < sizeof(data_block)) {
             len = count - wrcount;     
-        } 
-        else {
+        } else {
             len = sizeof(data_block);
         }
 
         if(div >= NUM_DIRECT_BLOCKS){
             data_block_number* result = (data_block_number*)(fs->data_root + inode->indirect);
             div -= NUM_DIRECT_BLOCKS;
-        } 
-        else {
+        } else {
             data_block_number* result = inode->direct;
         }
         memblock = (void*) (fs->data_root + result[div]);
