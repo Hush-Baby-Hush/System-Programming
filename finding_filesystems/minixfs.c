@@ -46,35 +46,31 @@ int minixfs_virtual_path_count =
 
 int minixfs_chmod(file_system *fs, char *path, int new_permissions) {
     // Thar she blows!
-    inode* inode = get_inode(fs, path);
-    if (!inode) {
+    if (!get_inode(fs, path)) {
         errno = ENOENT; 
         return -1;
     }
+    inode* inode = get_inode(fs, path);
     uint16_t temp = inode->mode >> RWX_BITS_NUMBER;
     inode->mode = new_permissions | (temp << RWX_BITS_NUMBER);
-    struct timespec currtime = &(inode->ctim);
-    clock_gettime(CLOCK_REALTIME, currtime);
+    clock_gettime(CLOCK_REALTIME, &(inode->ctim));
     return 0;
 }
 
 int minixfs_chown(file_system *fs, char *path, uid_t owner, gid_t group) {
     // Land ahoy!
-    inode *inode = get_inode(fs, path);
-    if (!inode) {
+    if (!get_inode(fs, path)) {
         errno = ENOENT; 
         return -1;
     }
+    inode *inode = get_inode(fs, path);
     if (owner != ((uid_t)-1)){
         inode->uid = owner;
     }
     if (group != ((gid_t)-1)){
         inode->gid = group;
     }
-    struct timespec currtime = &(inode->ctim);
-    clock_gettime(CLOCK_REALTIME, currtime);
-
-    // clock_gettime(CLOCK_REALTIME, &(inode->ctim));
+    clock_gettime(CLOCK_REALTIME, &(inode->ctim));
     return 0;
 }
 
@@ -106,13 +102,13 @@ inode *minixfs_create_inode_for_path(file_system *fs, const char *path) {
     if ((!mod && add_data_block_to_inode(fs, parent) == -1) || (div >= NUM_DIRECT_BLOCKS)) {
         return NULL;
     }
-
+    data_block_number* result;
     if(div >= NUM_DIRECT_BLOCKS){
-        data_block_number* result = (data_block_number*)(fs->data_root + parent->indirect);
+        result = (data_block_number*)(fs->data_root + parent->indirect);
         div -= NUM_DIRECT_BLOCKS;
     } 
-    else if(div < NUM_DIRECT_BLOCKS){
-        data_block_number* result = parent->direct;
+    else{
+       result = parent->direct;
     }
 
     void* start = (void*) (fs->data_root + result[div]) + mod;
@@ -172,10 +168,11 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
 
     uint64_t div = *off / sizeof(data_block);
     size_t mod = *off % sizeof(data_block);
+    uint64_t len;
     if (count + mod > sizeof(data_block)) {
-        uint64_t len = sizeof(data_block) - mod;
+        len = sizeof(data_block) - mod;
     } else {
-        uint64_t len = count;
+        len = count;
     }
 
     inode* inode = get_inode(fs, path);
