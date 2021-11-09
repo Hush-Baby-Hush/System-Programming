@@ -100,15 +100,16 @@ inode *minixfs_create_inode_for_path(file_system *fs, const char *path) {
         return NULL;
     }
     data_block_number* result;
-    if(div >= NUM_DIRECT_BLOCKS){
+    int temp = div;
+    if(temp >= NUM_DIRECT_BLOCKS){
         result = (data_block_number*)(fs->data_root + parent->indirect);
-        div -= NUM_DIRECT_BLOCKS;
+        temp -= NUM_DIRECT_BLOCKS;
     } 
     else{
        result = parent->direct;
     }
 
-    void* start = (void*) (fs->data_root + result[div]) + mod;
+    void* start = (void*) (fs->data_root + result[temp]) + mod;
     memset(start, 0, sizeof(data_block));
     make_string_from_dirent(start, dirent);
     parent->size += MAX_DIR_NAME_LEN;
@@ -174,14 +175,15 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
 
     inode* inode = get_inode(fs, path);
     data_block_number* result;
-    if(div >= NUM_DIRECT_BLOCKS){
+    uint64_t temp = div;
+    if(temp >= NUM_DIRECT_BLOCKS){
         result = (data_block_number*)(fs->data_root + inode->indirect);
-        div -= NUM_DIRECT_BLOCKS;
+        temp -= NUM_DIRECT_BLOCKS;
     } else {
         result = inode->direct;
     }
 
-    void * memblock = (void*) (fs->data_root + result[div]) + mod;
+    void * memblock = (void*) (fs->data_root + result[temp]) + mod;
     memcpy(memblock, buf, len);
     *off += len;
     div++;
@@ -193,13 +195,14 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
             len = sizeof(data_block);
         }
 
-        if(div >= NUM_DIRECT_BLOCKS){
+        uint64_t temp2 = div;
+        if(temp2 >= NUM_DIRECT_BLOCKS){
             result = (data_block_number*)(fs->data_root + inode->indirect);
-            div -= NUM_DIRECT_BLOCKS;
+            temp2 -= NUM_DIRECT_BLOCKS;
         } else {
             result = inode->direct;
         }
-        memblock = (void*) (fs->data_root + result[div]);
+        memblock = (void*) (fs->data_root + result[temp2]);
         memcpy(memblock, buf + wrcount, len);
         div++;
         *off += len;
@@ -247,14 +250,15 @@ ssize_t minixfs_read(file_system *fs, const char *path, void *buf, size_t count,
 
     uint64_t div = *off / sizeof(data_block);
     data_block_number* result;
-    if(div >= NUM_DIRECT_BLOCKS){
+    uint64_t temp = div;
+    if(temp >= NUM_DIRECT_BLOCKS){
         result = (data_block_number*)(fs->data_root + inode->indirect);
-        div -= NUM_DIRECT_BLOCKS;
+        temp -= NUM_DIRECT_BLOCKS;
     } 
     else {
         result = inode->direct;
     }
-    void* memblock = (void*) (fs->data_root + result[div]) + mod;
+    void* memblock = (void*) (fs->data_root + result[temp]) + mod;
     memcpy(buf, memblock, size);
     *off += size;
     div++;
@@ -267,14 +271,15 @@ ssize_t minixfs_read(file_system *fs, const char *path, void *buf, size_t count,
         else{
             size = sizeof(data_block);
         }
-        if(div >= NUM_DIRECT_BLOCKS){
+        uint64_t temp2 = div;
+        if(temp2 >= NUM_DIRECT_BLOCKS){
             result = (data_block_number*)(fs->data_root + inode->indirect);
-            div -= NUM_DIRECT_BLOCKS;
+            temp2 -= NUM_DIRECT_BLOCKS;
         } 
         else {
             result = inode->direct;
         }
-        memblock = (void*) (fs->data_root + result[div]);
+        memblock = (void*) (fs->data_root + result[temp2]);
         memcpy(buf + readcount, memblock, size);
         div ++;
         *off += size;
