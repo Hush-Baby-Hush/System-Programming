@@ -1,105 +1,116 @@
-/**
- * deepfried_dd
- * CS 241 - Fall 2021
- */
 #include "format.h"
-#include <string.h>
-#include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <signal.h>
 #include <time.h>
-#include <unistd.h>
 
-static int stats = 0;
-
-void report_signal(int sig) {
+static int print_stat = 0;
+void signal_handler(int sig) {
     if (sig == SIGUSR1) {
-        stats = 1;
+        print_stat = 1;
     }
 }
 
 
 int main(int argc, char **argv) {
-    signal(SIGUSR1, report_signal);
-    FILE* inputfile = stdin;
-    FILE* outputfile = stdout;
-    long input_skip_num_block = 0;
-    long output_skip_num_block = 0;
-    long copy_num_block = 0;
-    long block_size = 512;
+    signal(SIGUSR1, signal_handler);
     int opt = 0;
+    FILE* fp_in = stdin;
+    FILE* fp_out = stdout;
+    long num_block_skip_in = 0;
+    long num_block_skip_out = 0;
+    long num_block_copy = 0;
+    long block_size = 512;
     while((opt = getopt(argc, argv, "i:o:b:c:p:k:")) != -1) {
         switch(opt) {
             case 'i':
-                inputfile = fopen(optarg, "r");
-                if (!inputfile) {
+                fp_in = fopen(optarg, "r");
+                if (fp_in == NULL) {
                     print_invalid_input(optarg);
                     exit(1);
-                }
+                }/*
+                size_t i = 0;
+                char* linptr;
+                if (getline(&linptr, &i, fp_in) != -1) {
+                    puts(linptr); //print the line 
+                }*/
                 continue;
             case 'o':
-                outputfile = fopen(optarg, "w+");
-                if (!outputfile) {
+                fp_out = fopen(optarg, "w+");
+                if (fp_out == NULL) {
                     print_invalid_output(optarg);
                     exit(1);
                 }
-                continue;  
+                continue;
+                
+                
+                
             case 'b':
                 block_size = atol(optarg);
                 continue;
             case 'c':
-                copy_num_block = atol(optarg);
+                num_block_copy = atol(optarg);
                 continue;
+
             case 'p':
-                input_skip_num_block = atol(optarg);
+                num_block_skip_in = atol(optarg);
                 continue;
             case 'k':
-                output_skip_num_block = atol(optarg);
+                num_block_skip_out = atol(optarg);
                 continue;
 
             case '?':
                 exit(1);
         }
     }
-
-    fseek(inputfile, input_skip_num_block, SEEK_SET);
-    fseek(outputfile, output_skip_num_block, SEEK_SET);
-
+    fseek(fp_in, num_block_skip_in, SEEK_SET);
+    fseek(fp_out, num_block_skip_out, SEEK_SET);
     clock_t before = clock();
-    size_t copy_ = 0;
     size_t full_blocks_in = 0;
     size_t partial_blocks_in = 0;
-
-    while ((!feof(inputfile)) && copy_num_block && partial_blocks_in + full_blocks_in == (unsigned long) copy_num_block) {
-        if (stats) {
+    size_t copy_size = 0;
+    while (1) {
+        if (feof(fp_in)) {
+            break;
+        }
+        if (num_block_copy != 0 && partial_blocks_in + full_blocks_in == (unsigned long) num_block_copy) {
+            break;
+        }
+        if (print_stat) {
             clock_t diff_ = clock() - before;
-            double elapsedTime = 1000* diff_ / CLOCKS_PER_SEC;
-            elapsedTime /= 1000;
-            print_status_report(full_blocks_in, partial_blocks_in, full_blocks_in, partial_blocks_in, copy_, elapsedTime);
-            stats = 0;
+            double time_elapsed_ = 1000* diff_ / CLOCKS_PER_SEC;
+            time_elapsed_ /= 1000;
+
+            print_status_report(full_blocks_in, partial_blocks_in,
+                        full_blocks_in, partial_blocks_in,
+                        copy_size, time_elapsed_);
+            print_stat = 0;
         }
         char buffer[block_size];
-        size_t num_read = fread((void*) buffer, 1, block_size, inputfile);
-        if (!num_read) {
+        size_t num_read = fread((void*) buffer, 1, block_size, fp_in);
+        if (num_read == 0) {
             break;
         }
         if (num_read >= (unsigned long) block_size) {
             fflush(stdin);
-            fwrite((void*) buffer, block_size, 1, outputfile);
+            fwrite((void*) buffer, block_size, 1, fp_out);
             full_blocks_in++;
-            copy_ += block_size;
+            copy_size += block_size;
         } else {
             partial_blocks_in++;
-            copy_ += num_read;
-            fwrite((void*) buffer, num_read, 1, outputfile);
+            copy_size += num_read;
+            fwrite((void*) buffer, num_read, 1, fp_out);
         }
         
     }
     clock_t diff = clock() - before;
-    long double elapsedTime2 = 1000* diff / CLOCKS_PER_SEC;
-    elapsedTime2 /= 1000;
+    long double time_elapsed = 1000* diff / CLOCKS_PER_SEC;
+    time_elapsed /= 1000;
+    //size_t total_bytes_copied = block_size * num_block_copy;
     print_status_report(full_blocks_in, partial_blocks_in,
                         full_blocks_in, partial_blocks_in,
-                        copy_, elapsedTime2);
+                        copy_size, time_elapsed);
     return 0;
 }
