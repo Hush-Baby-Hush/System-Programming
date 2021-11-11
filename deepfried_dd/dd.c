@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
             clock_t diff_ = clock() - before;
             double elapsedTime = 1000* diff_ / CLOCKS_PER_SEC;
             elapsedTime /= 1000;
-            statsus_report(full_blocks_in, partial_blocks_in, full_blocks_in, partial_blocks_in, copy_, elapsedTime);
+            print_status_report(full_blocks_in, partial_blocks_in, full_blocks_in, partial_blocks_in, copy_, elapsedTime);
             stats = 0;
         }
         char buffer[block_size];
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
     clock_t diff = clock() - before;
     long double elapsedTime2 = 1000* diff / CLOCKS_PER_SEC;
     elapsedTime2 /= 1000;
-    statsus_report(full_blocks_in, partial_blocks_in,
+    print_status_report(full_blocks_in, partial_blocks_in,
                         full_blocks_in, partial_blocks_in,
                         copy_, elapsedTime2);
     return 0;
