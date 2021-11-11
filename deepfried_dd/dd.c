@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     size_t partial_blocks_in = 0;
 
     while (!feof(inputfile)) {
-        if (copy_num_block && partial_blocks_in + full_blocks_in == (unsigned long) copy_num_block))
+        if (copy_num_block && partial_blocks_in + full_blocks_in == (unsigned long) copy_num_block)
         {
             break;
         }
