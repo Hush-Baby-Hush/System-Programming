@@ -1,7 +1,3 @@
-/**
- * nonstop_networking
- * CS 241 - Fall 2021
- */
 #include "format.h"
 #include <ctype.h>
 #include <stdbool.h>
@@ -9,67 +5,61 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "common.h"
-
 #include <errno.h>
 #include <netdb.h>
-#include <pthread.h>
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "common.h"
 
-static int sockt_fd;
 char **parse_args(int argc, char **argv);
 verb check_args(char **args);
-
-void connect_to_server(const char *host, const char *port) {
-    struct addrinfo hint, *result;
-    memset(&hint, 0, sizeof(hint));
-    hint.ai_family = AF_INET;
-    hint.ai_socktype = SOCK_STREAM;
-    int addrinfo_ = getaddrinfo(host, port, &hint, &result);
-    if (addrinfo_) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(addrinfo_));
-        exit(1);
-    }
-    int sockt_fd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (sockt_fd == -1) {
-        perror("socket");
-        exit(1);
-    }
-    int connection = connect(sockt_fd, result->ai_addr, result->ai_addrlen);
-    if (connection == -1) {
-        perror("connect");
-        exit(1);
-    }
-    freeaddrinfo(result);
-}
 
 int main(int argc, char **argv) {
     // Good luck!
     char** args = parse_args(argc, argv);
     verb method = check_args(args);
+
+    struct addrinfo h, *result;
+    memset(&h, 0, sizeof(h));
+    h.ai_family = AF_INET;
+    h.ai_socktype = SOCK_STREAM;
     char* host = args[0];
     char* port = args[1];
-    connect_to_server(host, port);
-
-    char* temp_;
-    if (method == LIST) {
-        temp_ = calloc(1, strlen(args[2])+2);
-        sprintf(temp_, "%s\n", args[2]);   
-    } else {
-        temp_ = calloc(1, strlen(args[2]) + strlen(args[3])+3);
-        sprintf(temp_, "%s %s\n", args[2], args[3]);
+    int add_inf = getaddrinfo(host, port, &h, &result);
+    if (add_inf) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(add_inf));
+        exit(1);
     }
-    // ssize_t length = strlen(temp_);
-    ssize_t wcount = write_to_socket(sockt_fd, temp_, strlen(temp_));
-    if (wcount < strlen(temp_)) {
+    int sockt_file_descriptor = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (sockt_file_descriptor == -1) {
+        perror("socket");
+        exit(1);
+    }
+    int connection = connect(sockt_file_descriptor, result->ai_addr, result->ai_addrlen);
+    if (connection == -1) {
+        perror("connect");
+        exit(1);
+    }
+    freeaddrinfo(result);
+
+    //write to server if list
+    char* c;
+    if (method == LIST) {
+        c = calloc(1, strlen(args[2])+2);
+        sprintf(c, "%s\n", args[2]);   
+    } else {
+        c = calloc(1, strlen(args[2]) + strlen(args[3])+3);
+        sprintf(c, "%s %s\n", args[2], args[3]);
+    }
+    ssize_t length = strlen(c);
+    ssize_t wcount = write_to_socket(sockt_file_descriptor, c, length);
+    if (wcount < length) {
         print_connection_closed();
         exit(-1);
     }
-    free(temp_);
+    free(c);
 
     //if method is put
     if (method == PUT) {
@@ -80,7 +70,7 @@ int main(int argc, char **argv) {
         }
         //write size
         size_t size = s.st_size;
-        write_to_socket(sockt_fd, (char*)&size, sizeof(size_t));
+        write_to_socket(sockt_file_descriptor, (char*)&size, sizeof(size_t));
         //write data
         FILE* local = fopen(args[4], "r");
         if (!local) {
@@ -96,7 +86,7 @@ int main(int argc, char **argv) {
             }
             char buffer[w_size + 1];
             fread(buffer, 1, w_size, local);
-            if (write_to_socket(sockt_fd, buffer, w_size) < w_size) {
+            if (write_to_socket(sockt_file_descriptor, buffer, w_size) < w_size) {
                 print_connection_closed();
                 exit(-1);
             }
@@ -104,7 +94,7 @@ int main(int argc, char **argv) {
         }
         fclose(local);
     }
-    int status2 = shutdown(sockt_fd, SHUT_WR);
+    int status2 = shutdown(sockt_file_descriptor, SHUT_WR);
     if (status2 != 0) {
         perror("shutdown");
     }
@@ -112,7 +102,7 @@ int main(int argc, char **argv) {
     char* ok = "OK\n";
     char* err = "ERROR\n";
     char* res = calloc(1, strlen(ok)+1);
-    size_t read_byte = read_from_socket(sockt_fd, res, strlen(ok));
+    size_t read_byte = read_from_socket(sockt_file_descriptor, res, strlen(ok));
     if (strcmp(res, ok) == 0) {
         fprintf(stdout, "%s", res);
         //delete or put response ok
@@ -126,7 +116,7 @@ int main(int argc, char **argv) {
                 exit(-1);
             }
             size_t size;
-            read_from_socket(sockt_fd, (char*)&size, sizeof(size_t));
+            read_from_socket(sockt_file_descriptor, (char*)&size, sizeof(size_t));
             size_t rtotal = 0;
             size_t r_size;
             while (rtotal < size+5) {
@@ -136,7 +126,7 @@ int main(int argc, char **argv) {
                     r_size = size+5-rtotal;
                 }
                 char buffer[1025] = {0};
-                size_t count = read_from_socket(sockt_fd, buffer, r_size);
+                size_t count = read_from_socket(sockt_file_descriptor, buffer, r_size);
                 fwrite(buffer, 1, count, local);
                 rtotal += count;
                 if (count == 0) {break;}
@@ -156,10 +146,10 @@ int main(int argc, char **argv) {
         //when method is list   
         if (method == LIST) {
             size_t size;
-            read_from_socket(sockt_fd, (char*)&size, sizeof(size_t));
+            read_from_socket(sockt_file_descriptor, (char*)&size, sizeof(size_t));
             char buffer[size+6];
             memset(buffer, 0, size+6);
-            read_byte = read_from_socket(sockt_fd, buffer, size+5);
+            read_byte = read_from_socket(sockt_file_descriptor, buffer, size+5);
             //error occurs
             if (read_byte == 0 && read_byte != size) {
                 print_connection_closed();
@@ -175,11 +165,11 @@ int main(int argc, char **argv) {
         }
     } else {
         res = realloc(res, strlen(err)+1);
-        read_from_socket(sockt_fd, res+read_byte, strlen(err) - read_byte);
+        read_from_socket(sockt_file_descriptor, res+read_byte, strlen(err) - read_byte);
         if (strcmp(res, err) == 0) {
             fprintf(stdout, "%s", res);
             char err_message[20] = {0};
-            if (!read_from_socket(sockt_fd,err_message, 20)) {
+            if (!read_from_socket(sockt_file_descriptor,err_message, 20)) {
                 print_connection_closed();
             }
             print_error_message(err_message);
@@ -189,8 +179,8 @@ int main(int argc, char **argv) {
     }
     free(res);
     //
-    shutdown(sockt_fd, SHUT_WR);
-    close(sockt_fd);
+    shutdown(sockt_file_descriptor, SHUT_WR);
+    close(sockt_file_descriptor);
     free(args);
 }
 
