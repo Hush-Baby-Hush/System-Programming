@@ -1,7 +1,3 @@
-/**
- * nonstop_networking
- * CS 241 - Spring 2021
- */
 #include "format.h"
 #include <ctype.h>
 #include <stdbool.h>
@@ -9,228 +5,183 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <netdb.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <netdb.h>
-
 #include "common.h"
-
-static int socket_fd;
 
 char **parse_args(int argc, char **argv);
 verb check_args(char **args);
 
-void connect_to_server(const char *host, const char *port) {
-    struct addrinfo hints, *res;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    int s = getaddrinfo(host, port, &hints, &res);
-    if (s != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-        freeaddrinfo(res);
-        res = NULL;
-        exit(1);
-    }
-    socket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (socket_fd == -1) {
-        freeaddrinfo(res);
-        res = NULL;
-        perror("socket");
-        exit(1);
-    }
-    int ok = connect(socket_fd, res->ai_addr, res->ai_addrlen);
-    if (ok == -1) {
-        freeaddrinfo(res);
-        res = NULL;
-        perror("connect");
-        exit(1);
-    }
-    freeaddrinfo(res);
-    res = NULL;
-}
-
-void client_exit(char** args, int status) {
-    close(socket_fd);
-    free(args);
-    exit(status);
-}
-
 int main(int argc, char **argv) {
     // Good luck!
     char** args = parse_args(argc, argv);
-    verb method_verb = check_args(args);
+    verb method = check_args(args);
+
+    struct addrinfo h, *result;
+    memset(&h, 0, sizeof(h));
+    h.ai_family = AF_INET;
+    h.ai_socktype = SOCK_STREAM;
     char* host = args[0];
     char* port = args[1];
-    char* method = args[2];
-    char* remote = args[3];
-    char* local = args[4];
-    
-    connect_to_server(host, port);
-
-    //client request
-    if (method_verb == LIST) {
-        //send client request
-        char* buffer = calloc(1, strlen(method) + 2);
-        sprintf(buffer, "%s\n", method);
-        size_t count = strlen(buffer);
-        ssize_t bytes_written = write_all_to_socket(socket_fd, buffer, count);
-        free(buffer);
-        if (bytes_written == -1 || (size_t)bytes_written < count) {
-            print_connection_closed();
-            client_exit(args, 1);
-        }
-        if (shutdown(socket_fd, SHUT_WR) == -1) {
-            perror("shutdown");
-        }
-
-    } else if (method_verb == GET || method_verb == DELETE) {
-        //send client request
-        char* buffer = calloc(1, strlen(method) + strlen(remote) + 3);
-        sprintf(buffer, "%s %s\n", method, remote);
-        size_t count = strlen(buffer);
-        ssize_t bytes_written = write_all_to_socket(socket_fd, buffer, count);
-        free(buffer);
-        if (bytes_written == -1 || (size_t)bytes_written < count) {
-            print_connection_closed();
-            client_exit(args, 1);
-        }
-        if (shutdown(socket_fd, SHUT_WR) == -1) {
-            perror("shutdown");
-        }
-
-    } else if (method_verb == PUT) {
-        //send client request
-        char* buffer = calloc(1, strlen(method) + strlen(remote) + 3);
-        sprintf(buffer, "%s %s\n", method, remote);
-        size_t count = strlen(buffer);
-        ssize_t bytes_written = write_all_to_socket(socket_fd, buffer, count);
-        free(buffer);
-        if (bytes_written == -1 || (size_t)bytes_written < count) {
-            print_connection_closed();
-            client_exit(args, 1);
-        }
-        //write local file to server
-        //get stat
-        struct stat s;
-        if (stat(local, &s) == -1) exit(1);
-        size_t file_size = s.st_size;
-        write_all_to_socket(socket_fd, (const char*)&file_size, sizeof(file_size));
-        //open local file
-        FILE* local_file = fopen(local, "r");
-        if (!local_file) {
-            //file not exist
-            print_connection_closed();
-            client_exit(args, 1);
-        }
-        if (write_localfile_to_socket(socket_fd, local_file, file_size) == -1) {
-            //close local file
-            fclose(local_file);
-            print_connection_closed();
-            client_exit(args, 1);
-        }
-        //close local file
-        fclose(local_file);
-        if (shutdown(socket_fd, SHUT_WR) == -1) {
-            perror("shutdown");
-        }
+    int add_inf = getaddrinfo(host, port, &h, &result);
+    if (add_inf) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(add_inf));
+        exit(1);
     }
-
-    //server response
-    char* response = calloc(1, 4);
-    ssize_t response_bytes_read = read_all_from_socket(socket_fd, response, 3);
-    if (response_bytes_read == -1) {
-        print_connection_closed();
-        client_exit(args, 1);
+    int sockt_file_descriptor = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (sockt_file_descriptor == -1) {
+        perror("socket");
+        exit(1);
     }
-    if (!strcmp(response, "OK\n")) {
-        //OK
-        printf("OK\n");
-        if (method_verb == PUT || method_verb == DELETE) {
-            print_success();
-        } else if (method_verb == GET) {
-            size_t file_size;
-            read_all_from_socket(socket_fd, (char*)&file_size, sizeof(file_size));
-            FILE* local_file = fopen(local, "w+");
-            if (!local_file) {
-                print_connection_closed();
-                client_exit(args, 1);
-            }
-            size_t total_bytes_read = 0;
-            size_t blocksize = 512;
-            char buf[blocksize];
-            //in order to detect too much data error, enlarge the max size
-            size_t max_size = file_size + 5;
-            //read data from server and write to local file
-            while (total_bytes_read < max_size) {
-                if (max_size - total_bytes_read < blocksize) {
-                    blocksize = max_size - total_bytes_read;
-                }
-                size_t bytes_read = read_all_from_socket(socket_fd, buf, blocksize);
-                if (bytes_read == 0) break;
-                fwrite(buf, sizeof(char), bytes_read, local_file);
-                total_bytes_read += bytes_read;
-            }
-            //check error
-            if (total_bytes_read < file_size) {
-                print_too_little_data();
-                client_exit(args, 1);
-            } else if (total_bytes_read > file_size) {
-                print_received_too_much_data();
-                client_exit(args, 1);
-            }
-            fclose(local_file);
+    int connection = connect(sockt_file_descriptor, result->ai_addr, result->ai_addrlen);
+    if (connection == -1) {
+        perror("connect");
+        exit(1);
+    }
+    freeaddrinfo(result);
 
-        } else if (method_verb == LIST) {
-            size_t size;
-            read_all_from_socket(socket_fd, (char*)&size, sizeof(size));
-            //in order to detect too much data error, enlarge the max size
-            size_t max_size = size + 5;
-            char buf[max_size];
-            memset(buf, 0, max_size);
-            ssize_t bytes_read = read_all_from_socket(socket_fd, buf, max_size - 1);
-            //check error
-            if (bytes_read == -1) {
-                print_connection_closed();
-                client_exit(args, 1);
-            }
-            if ((size_t)bytes_read < size) {
-                print_too_little_data();
-                client_exit(args, 1);
-            } else if ((size_t)bytes_read > size) {
-                print_received_too_much_data();
-                client_exit(args, 1);
-            }
-            printf("%zu%s", size, buf);
-        }
+    //write to server if list
+    char* c;
+    if (method == LIST) {
+        c = calloc(1, strlen(args[2])+2);
+        sprintf(c, "%s\n", args[2]);   
     } else {
-        //ERROR
-        char* error = "ERROR\n";
-        response = realloc(response, strlen(error) + 1);
-        read_all_from_socket(socket_fd, response + response_bytes_read, strlen(error) - response_bytes_read);
-        response[strlen(error)] = 0;
-        if (!strcmp(response, error)) {
-            char message[21];
-            ssize_t message_read = read_all_from_socket(socket_fd, message, 20);
-            message[20] = 0;
-            if (message_read == -1) {
-                print_connection_closed();
-                client_exit(args, 1);
-            }
-            print_error_message(message);
-        } else {
-            print_invalid_response();
-            client_exit(args, 1);
-        }
-
+        c = calloc(1, strlen(args[2]) + strlen(args[3])+3);
+        sprintf(c, "%s %s\n", args[2], args[3]);
     }
-    free(response);
-    if (shutdown(socket_fd, SHUT_RD) == -1) {
+    ssize_t length = strlen(c);
+    ssize_t wcount = write_to_socket(sockt_file_descriptor, c, length);
+    if (wcount < length) {
+        print_connection_closed();
+        exit(-1);
+    }
+    free(c);
+
+    //if method is put
+    if (method == PUT) {
+        struct stat s;
+        int status = stat(args[4], &s);
+        if (status == -1) {
+            exit(-1);
+        }
+        //write size
+        size_t size = s.st_size;
+        write_to_socket(sockt_file_descriptor, (char*)&size, sizeof(size_t));
+        //write data
+        FILE* local = fopen(args[4], "r");
+        if (!local) {
+            exit(-1);
+        }
+        ssize_t w_size;
+        size_t wtotal = 0;
+        while (wtotal < size) {
+            if ((size - wtotal) > 1024) {
+                w_size = 1024;
+            } else {
+                w_size = size - wtotal;
+            }
+            char buffer[w_size + 1];
+            fread(buffer, 1, w_size, local);
+            if (write_to_socket(sockt_file_descriptor, buffer, w_size) < w_size) {
+                print_connection_closed();
+                exit(-1);
+            }
+            wtotal += w_size;
+        }
+        fclose(local);
+    }
+    int status2 = shutdown(sockt_file_descriptor, SHUT_WR);
+    if (status2 != 0) {
         perror("shutdown");
     }
-    client_exit(args, 0);
+    //read response from server()
+    char* ok = "OK\n";
+    char* err = "ERROR\n";
+    char* res = calloc(1, strlen(ok)+1);
+    size_t read_byte = read_from_socket(sockt_file_descriptor, res, strlen(ok));
+    if (strcmp(res, ok) == 0) {
+        fprintf(stdout, "%s", res);
+        //delete or put response ok
+        if (method == DELETE || method == PUT) {
+            print_success();
+        }
+        if (method == GET) {
+            FILE* local= fopen(args[4], "a+");
+            if (!local) {
+                perror("fopen");
+                exit(-1);
+            }
+            size_t size;
+            read_from_socket(sockt_file_descriptor, (char*)&size, sizeof(size_t));
+            size_t rtotal = 0;
+            size_t r_size;
+            while (rtotal < size+5) {
+                if ((size+5 -rtotal) > 1024) {
+                    r_size = 1024;
+                } else {
+                    r_size = size+5-rtotal;
+                }
+                char buffer[1025] = {0};
+                size_t count = read_from_socket(sockt_file_descriptor, buffer, r_size);
+                fwrite(buffer, 1, count, local);
+                rtotal += count;
+                if (count == 0) {break;}
+            }
+            if (rtotal == 0 && rtotal != size) {
+                print_connection_closed();
+                exit(-1);
+            } else if (rtotal < size) {
+                print_too_little_data();
+                exit(-1);
+            } else if (rtotal > size) {
+                print_received_too_much_data();
+                exit(-1);
+            }
+            fclose(local);
+        }
+        //when method is list   
+        if (method == LIST) {
+            size_t size;
+            read_from_socket(sockt_file_descriptor, (char*)&size, sizeof(size_t));
+            char buffer[size+6];
+            memset(buffer, 0, size+6);
+            read_byte = read_from_socket(sockt_file_descriptor, buffer, size+5);
+            //error occurs
+            if (read_byte == 0 && read_byte != size) {
+                print_connection_closed();
+                exit(-1);
+            } else if (read_byte < size) {
+                print_too_little_data();
+                exit(-1);
+            } else if (read_byte > size) {
+                print_received_too_much_data();
+                exit(-1);
+            }
+            fprintf(stdout, "%zu%s", size, buffer);
+        }
+    } else {
+        res = realloc(res, strlen(err)+1);
+        read_from_socket(sockt_file_descriptor, res+read_byte, strlen(err) - read_byte);
+        if (strcmp(res, err) == 0) {
+            fprintf(stdout, "%s", res);
+            char err_message[20] = {0};
+            if (!read_from_socket(sockt_file_descriptor,err_message, 20)) {
+                print_connection_closed();
+            }
+            print_error_message(err_message);
+        } else {
+            print_invalid_response();
+        }
+    }
+    free(res);
+    //
+    shutdown(sockt_file_descriptor, SHUT_WR);
+    close(sockt_file_descriptor);
+    free(args);
 }
 
 /**
