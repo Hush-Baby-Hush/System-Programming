@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     }
     
     ssize_t num_wr = write_to_socket(sockt_fd, temp_, strlen(temp_));
-    if (num_wr < strlen(temp_)) {
+    if (num_wr < (ssize_t)strlen(temp_)) {
         print_connection_closed();
         exit(-1);
     }
