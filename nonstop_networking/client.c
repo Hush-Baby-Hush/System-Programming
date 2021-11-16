@@ -184,7 +184,7 @@ void read_response(char **args, int sockt_fd, verb method) {
         }
     } else {
         res = realloc(res, strlen(err)+1);
-        size_t num_read = read_all_from_socket(sockt_fd, res, strlen(ok));
+        size_t num_read = read_from_socket(sockt_fd, res, strlen(ok));
         read_from_socket(sockt_fd, res+num_read, strlen(err) - num_read);
         if (!strcmp(res, err)) {
             char err_message[20] = {0};
