@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
             }
             char buffer[buffer_size + 1];
             fread(buffer, 1, buffer_size, local);
-            size_t num_write = write_to_socket(sockt_fd, buffer, buffer_size);
+            ssize_t num_write = write_to_socket(sockt_fd, buffer, buffer_size);
             if (num_write < buffer_size) {
                 print_connection_closed();
                 exit(-1);
