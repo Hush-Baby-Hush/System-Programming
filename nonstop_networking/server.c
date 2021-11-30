@@ -44,7 +44,7 @@ static vector* files_ser;
 static char* _directory_;
 static char* port_;
 
-
+int run(go_illini* connection, int client_fd);
 
 void close_server() {
     close(epoll_fd);
@@ -137,7 +137,7 @@ void read_header(go_illini* connection, int client_fd) {
     } 
     
     else {
-        print_intempid_response();
+        print_invalid_response();
         epoll_monitor(client_fd);
         return;
     }
@@ -193,10 +193,7 @@ void epoll_init() {
             } else {               
                 go_illini* client_c = dictionary_get(client_dir, &temp);
                 if (!client_c->status) {  
-                    if (read_header(client_c, temp) == 1) {
-                        LOG("bad request");
-                        return;
-                    }
+                    read_header(client_c, temp);
                     LOG("header read");
                 } 
                 else if (client_c->status == 1) { 
@@ -224,7 +221,7 @@ int list_luck(go_illini* connection, int client_fd) {
     write_all_to_socket(client_fd, (char*) &size, sizeof(size_t));
     
     VECTOR_FOR_EACH(files_ser, file, {
-        write_all_to_socket(client_fd, file, strlen(file));
+        write_to_socket(client_fd, file, strlen(file));
         if (_it != _iend-1) {
             write_all_to_socket(client_fd, "\n", 1);
         }
@@ -267,7 +264,7 @@ int put_luck(go_illini* connection, int client_fd) {
         }
         char buff[1025];
         memset(buff, 0, 1025);
-        ssize_t read_c = read_all_from_socket(client_fd, buff, s);
+        ssize_t read_c = read_from_socket(client_fd, buff, s);
         if (read_c == -1) continue;
 
         fwrite(buff, 1, read_c, write_file);
@@ -303,10 +300,10 @@ int run(go_illini* connection, int client_fd) {
         if (put_luck(connection, client_fd) != 0) {
             return 1;
         }
-        write_all_to_socket(client_fd, OK, 3);
+        write_to_socket(client_fd, OK, 3);
     }
     if (command == LIST) {
-        write_all_to_socket(client_fd, OK, 3);
+        write_to_socket(client_fd, OK, 3);
         if (list_luck(connection, client_fd) != 0) {
             return 1;
         }
