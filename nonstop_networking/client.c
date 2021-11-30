@@ -25,7 +25,7 @@ char **parse_args(int argc, char **argv);
 verb check_args(char **args);
 
 //functions
-int connect_to_server(const char *host, const char *port);
+int connect_to_server( char *host,  char *port);
 int read_response(verb method);
 int handle_put();
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
     else {
         size_t total_len = strlen(args[2])+strlen(args[3])+3;
         temp = malloc(total_len);
-        sprintf(s, "%s %s\n", args[2], args[3]);
+        sprintf(temp, "%s %s\n", args[2], args[3]);
     }
 
     int count_wr = write_to_socket(sock_fd, temp, (ssize_t)strlen(temp));
@@ -122,7 +122,7 @@ int read_response(verb method) {
     char* ok = "OK\n";
     char* err = "ERROR\n";
     char* res = calloc(1, strlen(ok)+1);
-    size_t num_read = read_from_socket(sockt_fd, res, strlen(ok));
+    size_t num_read = read_from_socket(sock_fd, res, strlen(ok));
 
 
     if (strcmp(res, ok)) {
@@ -202,7 +202,7 @@ int read_response(verb method) {
             fprintf(stdout, "%s\n", buffer);   
     }
 
-    free(buffer);
+    free(res);
     return 0;
 }
 
