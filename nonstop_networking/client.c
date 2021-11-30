@@ -134,7 +134,7 @@ int read_response(verb method) {
             if (!read_from_socket(sock_fd, message, 24)) {
                 print_connection_closed();
             }
-            print_message(message);
+            print_error_message(message);
 
         } else {
             print_invalid_response();
