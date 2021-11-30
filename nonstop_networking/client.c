@@ -51,9 +51,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if (method != LIST) {
-        free(temp_);
-    }
+    free(temp_);
 
     if (method == PUT) {
         struct stat s;
@@ -126,6 +124,7 @@ void read_response(char **args, int sockt_fd, verb method) {
     char* ok = "OK\n";
     char* err = "ERROR\n";
     char* res = calloc(1, strlen(ok)+1);
+    size_t num_read = read_from_socket(sockt_fd, res, strlen(ok));
 
     if (!strcmp(res, ok)) {
         if (method == DELETE || method == PUT) {
@@ -168,7 +167,7 @@ void read_response(char **args, int sockt_fd, verb method) {
             read_from_socket(sockt_fd, (char*)&size, sizeof(size_t));
             char buffer[size+6];
             memset(buffer, 0, size+6);
-            size_t num_read = read_from_socket(sockt_fd, buffer, size+5);
+            num_read = read_from_socket(sockt_fd, buffer, size+5);
             //error occurs
             if (!num_read && num_read != size) {
                 print_connection_closed();
@@ -184,7 +183,6 @@ void read_response(char **args, int sockt_fd, verb method) {
         }
     } else {
         res = realloc(res, strlen(err)+1);
-        size_t num_read = read_from_socket(sockt_fd, res, strlen(ok));
         read_from_socket(sockt_fd, res+num_read, strlen(err) - num_read);
         if (!strcmp(res, err)) {
             char err_message[20] = {0};

@@ -6,7 +6,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/epoll.h>
 #include "format.h"
 #include <stdio.h>
 #include <stdio.h>
@@ -23,27 +22,38 @@
 
 
 ssize_t read_from_socket(int socket, char *buffer, size_t count) {
-    // Your Code Here
-
     size_t result = 0;
     while (result < count) {
-      ssize_t read_ = read(socket, buffer + result, count - result);
-      if (read_ == -1 && errno == EINTR) continue;
-      if (read_ == 0) break;
-      if (read_ == -1) return -1;
-      result += read_;
+        ssize_t read_code = read(socket, (void*) (buffer + result), count - result);
+        if (read_code == -1 && errno == EINTR) continue;
+        if (read_code == 0) break;
+        if (read_code == -1) return 1;
+        result += read_code;
     }
     return result;
 }
 
-ssize_t write_to_socket(int socket, const char *buffer, size_t count) {
+
+ssize_t write_all_to_socket(int socket, const char *buffer, size_t count) {
     size_t result = 0;
     while (result < count) {
-      ssize_t write_ = write(socket, buffer + result, count - result);
-      if (write_ == -1 && errno == EINTR) continue;
-      if (write_ == 0) break;
-      if (write_ == -1) return -1;
-      result += write_;
+        ssize_t write_code = write(socket, (void*) (buffer + result), count - result);
+        if (write_code == -1 && errno == EINTR) continue;
+        if (write_code == 0) break;
+        if (write_code == -1) return 1;
+        result += write_code;
+    }
+    return result;
+}
+
+ssize_t read_header_from_socket(int socket, char *buffer, size_t count) {
+    size_t result = 0;
+    while (result < count) {
+        ssize_t read_code = read(socket, (void*) (buffer + result), 1);
+        if (read_code == -1 && errno == EINTR) continue;
+        if (read_code == 0 || buffer[strlen(buffer) - 1] == '\n') break;
+        if (read_code == -1) return 1;
+        result += read_code;
     }
     return result;
 }
