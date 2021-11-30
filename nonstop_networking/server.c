@@ -218,12 +218,12 @@ int list_luck(go_illini* connection, int client_fd) {
     });
     if (size) size--;
 
-    write_all_to_socket(client_fd, (char*) &size, sizeof(size_t));
+    write_to_socket(client_fd, (char*) &size, sizeof(size_t));
     
     VECTOR_FOR_EACH(files_ser, file, {
         write_to_socket(client_fd, file, strlen(file));
         if (_it != _iend-1) {
-            write_all_to_socket(client_fd, "\n", 1);
+            write_to_socket(client_fd, "\n", 1);
         }
     });
     return 0;
