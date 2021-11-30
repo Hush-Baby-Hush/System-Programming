@@ -3,22 +3,22 @@
  * CS 241 - Fall 2021
  */
 #include "format.h"
+
+#include "common.h"
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "common.h"
-
 #include <errno.h>
 #include <netdb.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 
 
 char **parse_args(int argc, char **argv);
