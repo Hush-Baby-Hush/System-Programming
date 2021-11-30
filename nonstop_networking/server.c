@@ -252,7 +252,7 @@ int put_luck(go_illini* connection, int client_fd) {
     }
 
     size_t buff;
-    read_all_from_socket(client_fd, (char*) &buff, sizeof(size_t));
+    read_from_socket(client_fd, (char*) &buff, sizeof(size_t));
     size_t b = 0;
 
     while (b < buff + 4) {
