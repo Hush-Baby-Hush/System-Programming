@@ -20,84 +20,72 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-static int sockt_fd;
+
 char **parse_args(int argc, char **argv);
 verb check_args(char **args);
 
-
-void read_response(char **args, int sockt_fd, verb method);
+//functions
 void connect_to_server(const char *host, const char *port);
+void read_response(verb method);
+int handle_put();
+
+static char** args;
+static int sock_fd;
 
 int main(int argc, char **argv) {
     // Good luck!
-    char** args = parse_args(argc, argv);
+    args = parse_args(argc, argv);
+
     verb method = check_args(args);
-    char* host = args[0];
-    char* port = args[1];
-    connect_to_server(host, port);
 
-    char* temp_;
+    if (method == V_UNKNOWN) {
+        exit(1);
+    }
+
+    char *host = args[0];
+    char *port = args[1];
+    sock_fd = connect_to_server(host, port);
+    if (sock_fd == 1) {
+        exit(1);
+    }
+
+    char* temp;
+    int flag = 0;
     if (method == LIST) {
-        temp_ = calloc(1, strlen(args[2])+2);
-        sprintf(temp_, "%s\n", args[2]);   
-    } else {
-        temp_ = calloc(1, strlen(args[2]) + strlen(args[3]) + 3);
-        sprintf(temp_, "%s %s\n", args[2], args[3]);
+        temp = malloc(strlen(args[2]) + 2);
+        sprintf(temp, "%s\n", args[2]);
     }
-    
-    ssize_t num_wr = write_to_socket(sockt_fd, temp_, strlen(temp_));
-    if (num_wr < (ssize_t)strlen(temp_)) {
+
+    else {
+        size_t total_len = strlen(args[2])+strlen(args[3])+3;
+        temp = malloc(total_len);
+        sprintf(s, "%s %s\n", args[2], args[3]);
+    }
+
+    int count_wr = write_to_socket(sock_fd, temp, (ssize_t)strlen(temp));
+    if (count_wr < (ssize_t)strlen(temp)) {
         print_connection_closed();
-        exit(-1);
+        flag = 1;
     }
 
-    free(temp_);
+    free(temp);
 
-    if (method == PUT) {
-        struct stat s;
-        int status = stat(args[4], &s);
-        if (status == -1) {
-            exit(-1);
-        }
-        size_t size = s.st_size;
-        write_to_socket(sockt_fd, (char*)&size, sizeof(size_t));
-        FILE* local = fopen(args[4], "r");
-        if (!local) {
-            perror("fopen");
-            exit(-1);
-        }
-        size_t num_put = 0;
-        ssize_t buffer_size = 0;
-
-        while (num_put < size) {
-            if ((size - num_put) > 1024) {
-                buffer_size = 1024;
-            } else {
-                buffer_size = size - num_put;
-            }
-            char buffer[buffer_size + 1];
-            fread(buffer, 1, buffer_size, local);
-            ssize_t num_write = write_to_socket(sockt_fd, buffer, buffer_size);
-            if (num_write < buffer_size) {
-                print_connection_closed();
-                exit(-1);
-            }
-            num_put += buffer_size;
-        }
-        fclose(local);
+    if (flag == 1) {
+        exit(1);
     }
 
-    int status2 = shutdown(sockt_fd, SHUT_WR);
-    if (status2) perror("shutdown");
+    if (read_response(method) == 1) {
+        exit(1);
+    }
 
-    read_response(args, sockt_fd, method);
+    shutdown(sock_fd, SHUT_RD);
 
-    shutdown(sockt_fd, SHUT_RD);
-    close(sockt_fd);
+    close(sock_fd);
     free(args);
+    return 0;
 }
 
-void connect_to_server(const char *host, const char *port) {
+int connect_to_server( char *host,  char *port) {
     struct addrinfo hint, *result;
     memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_INET;
@@ -105,96 +93,153 @@ void connect_to_server(const char *host, const char *port) {
     int addrinfo_ = getaddrinfo(host, port, &hint, &result);
     if (addrinfo_) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(addrinfo_));
-        exit(1);
+        return 1;
     }
     int sockt_fd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (sockt_fd == -1) {
-        perror("socket");
-        exit(1);
+        perror("socket()");
+        return 1;
     }
     int connection = connect(sockt_fd, result->ai_addr, result->ai_addrlen);
     if (connection == -1) {
-        perror("connect");
-        exit(1);
+        perror("connect()");
+        return 1;
     }
     freeaddrinfo(result);
+    return sock_fd;
 }
 
-void read_response(char **args, int sockt_fd, verb method) {
+int read_response(verb method) {
+    if (method == PUT) {
+        handle_put();
+    }
+    
+    if (shutdown(sock_fd, SHUT_WR) != 0) {
+       perror("shutdown()");
+       return 1;
+    }
+
     char* ok = "OK\n";
     char* err = "ERROR\n";
     char* res = calloc(1, strlen(ok)+1);
     size_t num_read = read_from_socket(sockt_fd, res, strlen(ok));
 
-    if (!strcmp(res, ok)) {
-        if (method == DELETE || method == PUT) {
-            print_success();
-        }else if (method == GET) {
-            FILE* local_file = fopen(args[4], "a+");
-            if (!local_file ) {
-                perror("fopen");
-                exit(-1);
-            }
-            size_t size;
-            read_from_socket(sockt_fd, (char*)&size, sizeof(size_t));
-            size_t rtotal = 0;
-            size_t r_size;
-            while (rtotal < size+5) {
-                if ((size+5 -rtotal) > 1024) {
-                    r_size = 1024;
-                } else {
-                    r_size = size+5-rtotal;
-                }
-                char buffer[1025] = {0};
-                size_t count = read_from_socket(sockt_fd, buffer, r_size);
-                fwrite(buffer, 1, count, local_file );
-                rtotal += count;
-                if (count == 0) break;
-            }
-            if (!rtotal && rtotal != size) {
-                print_connection_closed();
-                exit(-1);
-            } else if (rtotal < size) {
-                print_too_little_data();
-                exit(-1);
-            } else if (rtotal > size) {
-                print_received_too_much_data();
-                exit(-1);
-            }
-            fclose(local_file );
-        }else if (method == LIST) {
-            size_t size;
-            read_from_socket(sockt_fd, (char*)&size, sizeof(size_t));
-            char buffer[size+6];
-            memset(buffer, 0, size+6);
-            num_read = read_from_socket(sockt_fd, buffer, size+5);
-            //error occurs
-            if (!num_read && num_read != size) {
-                print_connection_closed();
-                exit(-1);
-            } else if (num_read < size) {
-                print_too_little_data();
-                exit(-1);
-            } else if (num_read > size) {
-                print_received_too_much_data();
-                exit(-1);
-            }
-            fprintf(stdout, "%zu%s", size, buffer);
-        }
-    } else {
-        res = realloc(res, strlen(err)+1);
-        read_from_socket(sockt_fd, res+num_read, strlen(err) - num_read);
-        if (!strcmp(res, err)) {
-            char err_message[20] = {0};
-            if (!read_from_socket(sockt_fd,err_message, 20)) {
+
+    if (strcmp(res, ok)) {
+        char* new_buffer = realloc(res, strlen(err) + 1);
+        read_from_socket(sock_fd, new_buffer + num_read, strlen(err) - num_read);
+        
+        if (!strcmp(new_buffer, err)) {
+            char message[24] = {0};
+            if (!read_from_socket(sock_fd, message, 24)) {
                 print_connection_closed();
             }
-            print_error_message(err_message);
+            print_message(message);
+
         } else {
             print_invalid_response();
         }
+        return 1;
     }
-    free(res);
+    
+    if (method == DELETE || method == PUT) {
+            print_success();
+    }
+
+    else if (method == GET) {
+        FILE *local_file = fopen(args[4], "a+");
+        if (!local_file) {
+            perror("fopen()");
+            return 1;
+        }
+        size_t size;
+        read_from_socket(sock_fd, (char *)&size, sizeof(size_t));
+        size_t rtotal = 0;
+        size_t r_size;
+
+        while (rtotal < size+4) {
+            if ((size + 4 - rtotal) > 1024){
+                r_size = 1024;
+            }else{
+                r_size = size + 4 - rtotal;
+            }
+            char buffer[1025] = {0};
+            size_t count = read_from_socket(sock_fd, buffer, r_size);
+            fwrite(buffer, 1, count, local_file);
+            rtotal += count;
+            if (count == 0) break;
+        }
+
+        if (rtotal < size) {
+            print_too_little_data();
+            return 1;
+        } else if (rtotal > size) {
+            print_received_too_much_data();
+            return 1;
+        } else if (!rtotal && rtotal != size) {
+            print_connection_closed();
+            return 1;
+        } 
+        fclose(local_file);
+    }
+
+    else if (method == LIST) {
+            size_t size;
+            read_from_socket(sock_fd, (char*)&size, sizeof(size_t));
+            char buffer[size+6];
+            memset(buffer, 0, size+6);
+            num_read = read_from_socket(sock_fd, buffer, size+5);
+            if (!num_read && num_read != size) {
+                print_connection_closed();
+                return 1;
+            } else if (num_read < size) {
+                print_too_little_data();
+                return 1;
+            } else if (num_read > size) {
+                print_received_too_much_data();
+                return 1;
+            }
+            fprintf(stdout, "%s\n", buffer);   
+    }
+
+    free(buffer);
+    return 0;
+}
+
+int handle_put(){
+    struct stat s;
+    if(stat(args[4], &s) == -1) {
+        return 1;
+    }
+    size_t size = s.st_size;
+    write_to_socket(sock_fd, (char*)&size, sizeof(size_t));
+    FILE* local = fopen(args[4], "r");
+    if(!local) {
+        return 1;
+    }
+
+    ssize_t w_count;
+    size_t w_total = 0;
+
+    while (w_total < size) {
+        if ((size - w_total) <= 1024 ){
+            w_count = size - w_total;
+        } else {
+            w_count = 1024;
+        }
+
+        char buffer[w_count + 1];
+        fread(buffer, 1, w_count, local);
+        ssize_t num_write = write_to_socket(sock_fd, buffer, w_count);
+        if ( num_write < w_count) {
+            print_connection_closed();
+            return 1;
+        }
+        w_total += w_count;
+    }
+
+    fclose(local);
+    return 0;
 }
 
 
