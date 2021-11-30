@@ -25,8 +25,8 @@ char **parse_args(int argc, char **argv);
 verb check_args(char **args);
 
 //functions
-void connect_to_server(const char *host, const char *port);
-void read_response(verb method);
+int connect_to_server(const char *host, const char *port);
+int read_response(verb method);
 int handle_put();
 
 static char** args;
