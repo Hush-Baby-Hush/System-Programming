@@ -5,6 +5,7 @@
 #include "format.h"
 #include "shell.h"
 #include "vector.h"
+
 #include "sstring.h"
 #include <signal.h>
 #include <stdlib.h>
@@ -18,6 +19,9 @@
 #include <dirent.h> 
 
 extern char *optarg;
+
+
+
 static vector* all_process;
 static vector* all_history;
 static char* history_file = NULL;
@@ -35,6 +39,7 @@ int logic_or(char* cmd);
 int logic_separator(char* cmd);
 int redirect_output(char* cmd);
 int redirect_append(char* cmd);
+
 
 process* create_process(pid_t pid, char* comm) {
     process* ptr = malloc(sizeof(process));
