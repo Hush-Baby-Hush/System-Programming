@@ -32,6 +32,8 @@ typedef struct process {
     pid_t pid;
 } process;
 
+int execute(char* cmd, int logic);
+
 int LoOr(char* cmd) {
     char* Loc = strstr(cmd, "||");
     size_t calLen = strlen(cmd);
