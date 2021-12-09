@@ -32,13 +32,106 @@ typedef struct process {
     pid_t pid;
 } process;
 
-int LoAnd(char* cmd);
-int LoOr(char* cmd);
-int SepLo(char* cmd);
-int OutReDir(char* cmd);
-int AppReDir(char* cmd);
+int LoOr(char* cmd) {
+    char* Loc = strstr(cmd, "||");
+    size_t calLen = strlen(cmd);
+    size_t firLen = Loc - cmd;
+    size_t sedLen = calLen - (firLen + 3);
+    char firC [firLen];
+    char sndC [sedLen + 1];
+    strncpy(firC, cmd, firLen);
+    strncpy(sndC, (Loc + 3), sedLen);
+    firC[firLen - 1] = '\0';
+    sndC[sedLen] = '\0';
+    int first_status;
+    if ((first_status = execute(firC, 1))) {
+        return execute(sndC, 1);
+    }
+    return 0;
+}
 
+int OutReDir(char* cmd) {
+    char* Loc = strstr(cmd, ">");
+    size_t calLen = strlen(cmd);
+    size_t firLen = Loc - cmd;
+    size_t sedLen = calLen - (firLen + 2);
+    char firC [firLen];
+    char sndC [sedLen + 1];
+    strncpy(firC, cmd, firLen);
+    strncpy(sndC, (Loc + 2), sedLen);
+    firC[firLen - 1] = '\0';
+    sndC[sedLen] = '\0';
+    FILE* fd = fopen(sndC, "w");
+    int fd_num = fileno(fd);
+    int original = dup(fileno(stdout));
+    fflush(stdout);
+    dup2(fd_num, fileno(stdout));
+    execute(firC, 1);
+    fflush(stdout);
+    close(fd_num);
+    dup2(original, fileno(stdout));
+    reDir = 0;
+    return 0;
+}
+int LoAnd(char* cmd) {
+    char* Loc = strstr(cmd, "&&");
+    size_t calLen = strlen(cmd);
+    size_t firLen = Loc - cmd;
+    size_t sedLen = calLen - (firLen + 3);
+    char firC [firLen];
+    char sndC [sedLen + 1];
+    strncpy(firC, cmd, firLen);
+    strncpy(sndC, (Loc + 3), sedLen);
+    firC[firLen - 1] = '\0';
+    sndC[sedLen] = '\0';
+    int first_status;
+    if (!(first_status = execute(firC, 1))) {
+        return execute(sndC, 1);
+    }
 
+    return 1;
+}
+int AppReDir(char* cmd) {
+    char* Loc = strstr(cmd, ">>");
+    size_t calLen = strlen(cmd);
+    size_t firLen = Loc - cmd;
+    size_t sedLen = calLen - (firLen + 3);
+    char firC [firLen];
+    char sndC [sedLen + 1];
+    strncpy(firC, cmd, firLen);
+    strncpy(sndC, (Loc + 3), sedLen);
+    firC[firLen - 1] = '\0';
+    sndC[sedLen] = '\0';
+    // run
+    FILE* fd = fopen(sndC, "a");
+    int fd_num = fileno(fd);
+    int original = dup(fileno(stdout));
+    fflush(stdout);
+    dup2(fd_num, fileno(stdout));
+    execute(firC, 1);
+    fflush(stdout);
+    close(fd_num);
+    dup2(original, fileno(stdout));
+    reDir = 0;
+    return 0;
+}
+int SepLo(char* cmd) {
+    char* Loc = strstr(cmd, ";");
+    size_t calLen = strlen(cmd);
+    size_t firLen = Loc - cmd;
+    size_t sedLen = calLen - (firLen + 2);
+    char firC [firLen + 1];
+    char sndC [sedLen + 1];
+    strncpy(firC, cmd, firLen);
+    strncpy(sndC, (Loc + 2), sedLen);
+    firC[firLen] = '\0';
+    sndC[sedLen] = '\0';
+    
+    int result1 = execute(firC, 1);
+    int result2 = execute(sndC, 1);
+
+    return result1 && result2;
+}
 
 
 void ExitShell(int status) {
@@ -59,20 +152,6 @@ void ExitShell(int status) {
         fclose(input);
     }
     exit(status);
-}
-
-
-
-size_t ProInx(pid_t pid) {
-    ssize_t temp = -1;
-    for (size_t i = 0;i < vector_size(ProcAll); i++) {
-        process* ptr = vector_get(ProcAll, i);
-        if (ptr -> pid == pid) {
-            temp = i;
-            break;
-        }
-    }
-    return temp;
 }
 
 
@@ -142,8 +221,6 @@ int ExeTer(char*cmd) {
         arr[i] = vector_get(splt, i);
     }
     arr[size] = NULL;
-    
-
 
     if (pid > 0) {
         if (!reDir) {
@@ -268,6 +345,17 @@ void print_shell() {
     }
 }
 
+size_t ProInx(pid_t pid) {
+    ssize_t temp = -1;
+    for (size_t i = 0;i < vector_size(ProcAll); i++) {
+        process* ptr = vector_get(ProcAll, i);
+        if (ptr -> pid == pid) {
+            temp = i;
+            break;
+        }
+    }
+    return temp;
+}
 
 
 int execute(char* cmd, int logic) {
@@ -452,107 +540,6 @@ int execute(char* cmd, int logic) {
 }
 
 
-
-int LoOr(char* cmd) {
-    char* Loc = strstr(cmd, "||");
-    size_t calLen = strlen(cmd);
-    size_t firLen = Loc - cmd;
-    size_t sedLen = calLen - (firLen + 3);
-    char firC [firLen];
-    char sndC [sedLen + 1];
-    strncpy(firC, cmd, firLen);
-    strncpy(sndC, (Loc + 3), sedLen);
-    firC[firLen - 1] = '\0';
-    sndC[sedLen] = '\0';
-    int first_status;
-    if ((first_status = execute(firC, 1))) {
-        return execute(sndC, 1);
-    }
-    return 0;
-}
-
-int OutReDir(char* cmd) {
-    char* Loc = strstr(cmd, ">");
-    size_t calLen = strlen(cmd);
-    size_t firLen = Loc - cmd;
-    size_t sedLen = calLen - (firLen + 2);
-    char firC [firLen];
-    char sndC [sedLen + 1];
-    strncpy(firC, cmd, firLen);
-    strncpy(sndC, (Loc + 2), sedLen);
-    firC[firLen - 1] = '\0';
-    sndC[sedLen] = '\0';
-    FILE* fd = fopen(sndC, "w");
-    int fd_num = fileno(fd);
-    int original = dup(fileno(stdout));
-    fflush(stdout);
-    dup2(fd_num, fileno(stdout));
-    execute(firC, 1);
-    fflush(stdout);
-    close(fd_num);
-    dup2(original, fileno(stdout));
-    reDir = 0;
-    return 0;
-}
-int LoAnd(char* cmd) {
-    char* Loc = strstr(cmd, "&&");
-    size_t calLen = strlen(cmd);
-    size_t firLen = Loc - cmd;
-    size_t sedLen = calLen - (firLen + 3);
-    char firC [firLen];
-    char sndC [sedLen + 1];
-    strncpy(firC, cmd, firLen);
-    strncpy(sndC, (Loc + 3), sedLen);
-    firC[firLen - 1] = '\0';
-    sndC[sedLen] = '\0';
-    int first_status;
-    if (!(first_status = execute(firC, 1))) {
-        return execute(sndC, 1);
-    }
-
-    return 1;
-}
-int AppReDir(char* cmd) {
-    char* Loc = strstr(cmd, ">>");
-    size_t calLen = strlen(cmd);
-    size_t firLen = Loc - cmd;
-    size_t sedLen = calLen - (firLen + 3);
-    char firC [firLen];
-    char sndC [sedLen + 1];
-    strncpy(firC, cmd, firLen);
-    strncpy(sndC, (Loc + 3), sedLen);
-    firC[firLen - 1] = '\0';
-    sndC[sedLen] = '\0';
-    // run
-    FILE* fd = fopen(sndC, "a");
-    int fd_num = fileno(fd);
-    int original = dup(fileno(stdout));
-    fflush(stdout);
-    dup2(fd_num, fileno(stdout));
-    execute(firC, 1);
-    fflush(stdout);
-    close(fd_num);
-    dup2(original, fileno(stdout));
-    reDir = 0;
-    return 0;
-}
-int SepLo(char* cmd) {
-    char* Loc = strstr(cmd, ";");
-    size_t calLen = strlen(cmd);
-    size_t firLen = Loc - cmd;
-    size_t sedLen = calLen - (firLen + 2);
-    char firC [firLen + 1];
-    char sndC [sedLen + 1];
-    strncpy(firC, cmd, firLen);
-    strncpy(sndC, (Loc + 2), sedLen);
-    firC[firLen] = '\0';
-    sndC[sedLen] = '\0';
-    
-    int result1 = execute(firC, 1);
-    int result2 = execute(sndC, 1);
-
-    return result1 && result2;
-}
 
 
 
