@@ -5,7 +5,7 @@
 //
 //  Created by Kimmy Liu on 12/15/21.
 //
-
+#include <stdlib.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -27,11 +27,11 @@ int main(int argc, char** argv)
     char buffer1[] = "GET / HTTP/1.0\r\n\r\n";
     int port=1000;
     int con;
-    int port_start = (int)argv[1];
-    int port_end =(int)argv[2];
+    int port_start = atoi(argv[1]);
+    int port_end =atoi(argv[2]);
     printf("portstart%d",port_start);
     printf("portend%d",port_end);
-    printf("char %c",argv[1]);
+    printf("char %s",argv[0]);
     
     
 
