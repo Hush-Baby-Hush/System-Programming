@@ -34,9 +34,9 @@ int main()
       printf("Error opening socket\n");
       return -1;
   }
-//    host_name = "mydemo.cs.illinois.edu";
-    host_name = "arsarabi.eecs.umich.edu";
-    host_name = "tsy19.github.io";
+    host_name = "mydemo.cs.illinois.edu";
+//    host_name = "arsarabi.eecs.umich.edu";
+//    host_name = "tsy19.github.io";
     remoteHost = gethostbyname(host_name);
     if (remoteHost != NULL) {
         if (remoteHost->h_addrtype == AF_INET)
