@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include<string.h>
 #include <netdb.h>
+#include <unistd.h>
 #include <errno.h>
 
 //#define PORT 12345
