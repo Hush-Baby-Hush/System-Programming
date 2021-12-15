@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     int port_end =(int)argv[2];
     printf("portstart%d",port_start);
     printf("portend%d",port_end);
+    printf("char %c",argv[1]);
     
     
 
