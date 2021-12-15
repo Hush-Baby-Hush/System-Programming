@@ -1,3 +1,4 @@
+
 //
 //  main.c
 //  search
@@ -15,7 +16,7 @@
 
 //#define PORT 12345
 
-int main()
+int main(int argc, char** argv)
 {
   struct sockaddr_in addr;
   int fd;
@@ -26,6 +27,9 @@ int main()
     char buffer1[] = "GET / HTTP/1.0\r\n\r\n";
     int port=1000;
     int con;
+    int port_start = (int)argv[1];
+    int port_end =(int)argv[2];
+    
     
 
 
@@ -35,9 +39,10 @@ int main()
       printf("Error opening socket\n");
       return -1;
   }
-    host_name = "mydemo.cs.illinois.edu";
+//    host_name = "mydemo.cs.illinois.edu";
 //    host_name = "arsarabi.eecs.umich.edu";
 //    host_name = "tsy19.github.io";
+    host_name = argv[0];
     remoteHost = gethostbyname(host_name);
     if (remoteHost != NULL) {
         if (remoteHost->h_addrtype == AF_INET)
@@ -71,32 +76,37 @@ int main()
     
     
     addr.sin_family = AF_INET;
-    for(port=1000; port<2000; port++){
+    for(port=port_start; port<port_end; port++){
         addr.sin_port = htons(port);
         if(bind(fd, (struct sockaddr *)&addr,sizeof(struct sockaddr_in) ) == -1)
         {
-            printf("Error binding socket\n");
+//            printf("Error binding socket\n");
+            printf(".");
             continue;
         }
 
         
         con = connect(fd, (struct sockaddr*) &addr, sizeof addr);
         if (con != 0){
-            printf("Error in Connection\n");
+//            printf("Error in Connection\n");
+            printf(".");
             continue;
         }
       
         if (send(fd, buffer1, sizeof(buffer1), 0) < 0){
             printf("send failed");
+            printf(".");
             continue;
         }
         
         if (recv(fd, buffer2, 256, 0) < 0 ) {
             fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+            printf(".");
             continue;
         };
-        printf("send : %s\n", buffer1);
-        printf("recv : %s\n", buffer2);
+//        printf("send : %s\n", buffer1);
+        printf("port: %d, recv : %s\n", port, buffer2);
+        break;
     }
     
 //  addr.sin_port = htons(PORT);
