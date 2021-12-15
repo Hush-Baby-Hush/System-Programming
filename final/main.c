@@ -27,11 +27,11 @@ int main(int argc, char* argv[])
     char buffer1[] = "GET / HTTP/1.0\r\n\r\n";
     int port=1000;
     int con;
-    int port_start = atoi(argv[1]);
-    int port_end =atoi(argv[2]);
+    int port_start = atoi(argv[2]);
+    int port_end =atoi(argv[3]);
     printf("portstart%d",port_start);
     printf("portend%d",port_end);
-    printf("char %s",argv[0]);
+    printf("char %s",argv[1]);
     
     
 
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 //    host_name = "mydemo.cs.illinois.edu";
 //    host_name = "arsarabi.eecs.umich.edu";
 //    host_name = "tsy19.github.io";
-    host_name = argv[0];
+    host_name = argv[1];
     remoteHost = gethostbyname(host_name);
     if (remoteHost != NULL) {
         if (remoteHost->h_addrtype == AF_INET)
