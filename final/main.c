@@ -29,9 +29,9 @@ int main(int argc, char* argv[])
     int con;
     int port_start = atoi(argv[2]);
     int port_end =atoi(argv[3]);
-    printf("portstart%d",port_start);
-    printf("portend%d",port_end);
-    printf("char %s",argv[1]);
+//    printf("portstart%d",port_start);
+//    printf("portend%d",port_end);
+//    printf("char %s",argv[1]);
     
     
 
@@ -95,20 +95,31 @@ int main(int argc, char* argv[])
             printf(".");
             continue;
         }
-      
-        if (send(fd, buffer1, sizeof(buffer1), 0) < 0){
-            printf("send failed");
-            printf(".");
-            continue;
-        }
         
-        if (recv(fd, buffer2, 256, 0) < 0 ) {
-            fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
-            printf(".");
-            continue;
-        };
+//        char *buffer;
+//        asprintf(&buffer,
+//          "GET %s HTTP/1.0\r\n"
+//          "Connection: close\r\n"
+//          "Accept: */*\r\n\r\n");
+
+        write(fd, buffer1, sizeof(buffer1));
+        read(fd, buffer2, sizeof(buffer2));
+//        free(buffer);
+//
+//        if (send(fd, buffer1, sizeof(buffer1), 0) < 0){
+//            printf("send failed");
+//            printf(".");
+//            continue;
+//        }
+        
+//        if (recv(fd, buffer2, 256, 0) < 0 ) {
+////            fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+//            printf(".");
+//            continue;
+//        };
 //        printf("send : %s\n", buffer1);
-        printf("port: %d, recv : %s\n", port, buffer2);
+        
+        printf("%d\n", port, buffer2);
         break;
     }
     
