@@ -12,7 +12,7 @@
 #include<string.h>
 #include <netdb.h>
 
-#define PORT 12345
+//#define PORT 12345
 
 int main()
 {
@@ -23,7 +23,8 @@ int main()
     char *host_name;
     struct in_addr addr2;
     char buffer1[] = "GET / HTTP/1.0\r\n\r\n";
-
+    int port=1000;
+    int con;
     
 
 
@@ -66,19 +67,37 @@ int main()
     }
 //        printf("\tAddress length: %d\n", remoteHost->h_length);
     
-  addr.sin_port = htons(PORT);
+    
+    
+    addr.sin_family = AF_INET;
+    for(port=1000; port<2000; port++){
+        addr.sin_port = htons(port);
+        if(bind(fd, (struct sockaddr *)&addr,sizeof(struct sockaddr_in) ) == -1)
+        {
+            printf("Error binding socket\n");
+            continue;
+        }
+
+        
+        con = connect(fd, (struct sockaddr*) &addr, sizeof addr);
+        if (con != 0){
+            printf("Error in Connection\n");
+            continue;
+        }
+      
+        send(fd, buffer1, sizeof(buffer1), 0);
+        recv(fd, buffer2, 256, 0);
+        printf("send : %s\n", buffer1);
+        printf("recv : %s\n", buffer2);
+    }
+    
+//  addr.sin_port = htons(PORT);
 //  addr.sin_addr.s_addr = 0;
 //  addr.sin_addr.s_addr = inet_addr("141.213.13.199");
-  addr.sin_addr.s_addr = INADDR_ANY;
-  addr.sin_family = AF_INET;
+//  addr.sin_addr.s_addr = INADDR_ANY;
+  
 
-  if(bind(fd, (struct sockaddr *)&addr,sizeof(struct sockaddr_in) ) == -1)
-  {
-      printf("Error binding socket\n");
-      return -1;
-  }
 
-  printf("Successfully bound to port %u\n", PORT);
 //  printf(" %s\n", addr.sin_addr.s_addr);
     
 //    if (listen(fd, 3) == 0){
@@ -89,18 +108,18 @@ int main()
 //    }
     
 //    socklen_t addr_size = sizeof addr;
-    int con = connect(fd, (struct sockaddr*) &addr, sizeof addr);
-    if (con == 0){
-        printf("Client Connected\n");}
-    else{
-        printf("Error in Connection\n");
-        return -1;
-    }
+
     
 //    strcpy(buffer2, "GET / HTTP/1.0\r\n\r\n");
-    send(fd, buffer1, sizeof(buffer1), 0);
-    recv(fd, buffer2, 256, 0);
-    printf("Server : %s\n", buffer1);
-    printf("%s\n", buffer2);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     return 0;
 }
