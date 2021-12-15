@@ -16,7 +16,7 @@
 
 //#define PORT 12345
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
   struct sockaddr_in addr;
   int fd;
