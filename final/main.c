@@ -25,11 +25,11 @@ int main(int argc, char* argv[])
     struct hostent *remoteHost;
     char *host_name;
     struct in_addr addr2;
-    char *buffer1;
-    asprintf(&buffer1,
-      "GET / HTTP/1.0\r\n\r\n"
-      "Connection: close\r\n"
-      "Accept: */*\r\n\r\n");
+    char *buffer1 = "GET / HTTP/1.0\r\n\r\n";
+//    asprintf(&buffer1,
+//      "GET / HTTP/1.0\r\n\r\n"
+//      "Connection: close\r\n"
+//      "Accept: */*\r\n\r\n");
     int port=1000;
     int con;
     int port_start = atoi(argv[2]);
