@@ -125,6 +125,7 @@ int main(int argc, char* argv[])
 //        printf("send : %s\n", buffer1);
         printf("send%d:%s\n",port,buffer1);
         printf("recv%d:%s\n", port, buffer2);
+        printf("%s\n", repr(buffer2));
 //        break;
     }
     
