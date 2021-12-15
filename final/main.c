@@ -29,6 +29,8 @@ int main(int argc, char** argv)
     int con;
     int port_start = (int)argv[1];
     int port_end =(int)argv[2];
+    printf("portstart%d",port_start);
+    printf("portend%d",port_end);
     
     
 
