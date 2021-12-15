@@ -21,8 +21,6 @@ int main()
   char  buffer2[256];
     struct hostent *remoteHost;
     char *host_name;
-    int i = 0;
-    char **pAlias;
     struct in_addr addr2;
     char buffer1[] = "GET / HTTP/1.0\r\n\r\n";
 
@@ -101,7 +99,8 @@ int main()
     
 //    strcpy(buffer2, "GET / HTTP/1.0\r\n\r\n");
     send(fd, buffer1, sizeof(buffer1), 0);
-//    recv(fd, buffer1, 256, 0);
+    recv(fd, buffer2, 256, 0);
     printf("Server : %s\n", buffer1);
+    printf("%s\n", buffer2);
     return 0;
 }
