@@ -85,8 +85,13 @@ int main()
             continue;
         }
       
-        send(fd, buffer1, sizeof(buffer1), 0);
-        recv(fd, buffer2, 256, 0);
+        if (send(fd, buffer1, sizeof(buffer1), 0)) < 0){
+            printf("send failed");
+        }
+        
+        if (recv(fd, buffer2, 256, 0) < 0) {
+            printf("ERROR: Cannot receive messages with error code: %d", WSAGetLastError());
+        };
         printf("send : %s\n", buffer1);
         printf("recv : %s\n", buffer2);
     }
