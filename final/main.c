@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 //        printf("send : %s\n", buffer1);
         
         printf("%d:%s\n", port, buffer2);
-        break;
+//        break;
     }
     
 //  addr.sin_port = htons(PORT);
