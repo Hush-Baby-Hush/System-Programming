@@ -123,8 +123,8 @@ int main(int argc, char* argv[])
 //            continue;
 //        };
 //        printf("send : %s\n", buffer1);
-        
-        printf("%d:%s\n", port, buffer2);
+        printf("send%d:%s\n",port,buffer1)
+        printf("recv%d:%s\n", port, buffer2);
 //        break;
     }
     
