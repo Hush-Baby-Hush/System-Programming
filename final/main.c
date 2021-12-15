@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include<string.h>
 #include <netdb.h>
+#include <errno.h>
 
 //#define PORT 12345
 
@@ -91,7 +92,7 @@ int main()
         }
         
         if (recv(fd, buffer2, 256, 0) < 0 ) {
-            printf("ERROR: Cannot receive messages with error code: %d", WSAGetLastError());
+            fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
             continue;
         };
         printf("send : %s\n", buffer1);
