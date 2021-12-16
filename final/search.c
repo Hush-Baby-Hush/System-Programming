@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
             if (send(fd, request, nrequest, 0) > 0) {
                 memset(buff, 0, 1024);
                 recv(fd, buff, 1023, 0);
+                printf("buff=%s\n", buff);
                 if (strncmp(buff, "HTTP/1.0 200 OK", strlen("HTTP/1.0 200 OK")) == 0) {
                     found = 1;
                 }
