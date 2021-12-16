@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
                 memset(buff, 0, 1024);
                 recv(fd, buff, 1023, 0);
                 printf("buff=%s\n", buff);
-                if (strncmp(buff, "HTTP/1.0 200 OK", strlen("HTTP/1.0 200 OK")) == 0) {
+                if (strncmp(buff, "200", strlen("200")) == 0) {
                     found = 1;
                 }
             }
