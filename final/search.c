@@ -45,8 +45,8 @@ int main(int argc, char *argv[])
                 memset(buff, 0, 1024);
                 recv(fd, buff, 1023, 0);
                 printf("buff = %s\n", buff);
-                char* ch = strchr(buff, ' ');
-                if (ch && strncmp(ch + 1, "200", 3) == 0) {
+                /* char* ch = strchr(buff, ' '); */
+                if (strncmp(buff, "HTTP/1.0 200 OK", strlen("HTTP/1.0 200 OK")) == 0) {
                     found = 1;
                 }
             }
