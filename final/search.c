@@ -16,10 +16,14 @@ int connect_host(const char* host, int port) {
     struct sockaddr_in sockaddr;
     memset(&sockaddr, 0, sizeof(struct sockaddr_in));
     struct hostent* hostent = gethostbyname(host);
+    if (!hostent) {
+        return -1;
+    }
     memcpy(&sockaddr.sin_addr.s_addr, hostent->h_addr, hostent->h_length);
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_port = htons(port);
-    if (connect(fd, (struct sockaddr*)(&sockaddr), sizeof(sockaddr)) < 0) {
+    int ret = connect(fd, (struct sockaddr*)(&sockaddr), sizeof(sockaddr));
+    if (ret < 0) {
         return -1;
     }
     return fd;
@@ -44,8 +48,6 @@ int main(int argc, char *argv[])
             if (send(fd, request, nrequest, 0) > 0) {
                 memset(buff, 0, 1024);
                 recv(fd, buff, 1023, 0);
-                printf("buff = %s\n", buff);
-                /* char* ch = strchr(buff, ' '); */
                 if (strncmp(buff, "HTTP/1.0 200 OK", strlen("HTTP/1.0 200 OK")) == 0) {
                     found = 1;
                 }
