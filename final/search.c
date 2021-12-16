@@ -1,31 +1,63 @@
+// author: angrave
 #include <stdio.h>
-#include <sys/socket.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <netdb.h>
 #include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
-#define PORT 12345
 
-int main()
+// connect to (host, port)
+int connect_host(const char* host, int port) {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in sockaddr;
+    memset(&sockaddr, 0, sizeof(struct sockaddr_in));
+    struct hostent* hostent = gethostbyname(host);
+    memcpy(&sockaddr.sin_addr.s_addr, hostent->h_addr, hostent->h_length);
+    sockaddr.sin_family = AF_INET;
+    sockaddr.sin_port = htons(port);
+    if (connect(fd, (struct sockaddr*)(&sockaddr), sizeof(sockaddr)) < 0) {
+        return -1;
+    }
+    return fd;
+}
+
+int main(int argc, char *argv[])
 {
-  struct sockaddr_in addr;
-  int fd;
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s host begin_port end_port\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
-  fd = socket(AF_INET, SOCK_STREAM, 0);
-  if(fd == -1)
-  {
-      printf("Error opening socket\n");
-      return -1;
-  }
-
-  addr.sin_port = htons(PORT);
-  addr.sin_addr.s_addr = 0;
-  addr.sin_addr.s_addr = INADDR_ANY;
-  addr.sin_family = AF_INET;
-
-  if(bind(fd, (struct sockaddr *)&addr,sizeof(struct sockaddr_in) ) == -1)
-  {
-      printf("Error binding socket\n");
-      return -1;
-  }
-
-  printf("Successfully bound to port %u\n", PORT);
+    int bport = atoi(argv[2]);
+    int eport = atoi(argv[3]);
+    const char request[] = "GET / HTTP/1.0\r\n\r\n";
+    char buff[1024];
+    int nrequest = strlen(request);
+    for (int i = bport; i < eport; i++) {
+        int fd = connect_host(argv[1], i);
+        int found = 0;
+        if (fd > 0) {
+            if (send(fd, request, nrequest, 0) > 0) {
+                memset(buff, 0, 1024);
+                recv(fd, buff, 1024, 0);
+                char* ch = strchr(buff, ' ') + 1;
+                if (strncmp(ch, "200", 3) == 0) {
+                    found = 1;
+                }
+            }
+            close(fd);
+        }
+        if (found) {
+            printf("%d", i);
+            break;
+        } else {
+            printf(".");
+        }
+    }
+    printf("\n");
+    return 0;
 }
