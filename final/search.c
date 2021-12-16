@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
             if (send(fd, request, nrequest, 0) > 0) {
                 memset(buff, 0, 1024);
                 recv(fd, buff, 1023, 0);
-                /* printf("buff = %s\n", buff); */
+                printf("buff = %s\n", buff);
                 char* ch = strchr(buff, ' ');
                 if (ch && strncmp(ch + 1, "200", 3) == 0) {
                     found = 1;
