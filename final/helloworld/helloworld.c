@@ -70,14 +70,11 @@ int main(int argc, char* argv[]) {
         fclose(file1);
 
     } else if (argc >= 3 && strcmp(argv[0], "./decrypt") == 0) {
-        // decrypt mode
-
         char* input = argv[1];
         int infd1 = open(input, O_RDONLY);
         off_t getfSize = get_file_size(input);
         char* inbuff = mmap(NULL, getfSize, PROT_READ, MAP_SHARED, infd1, 0);
 
-        // create and write output file
         char* output = argv[2];
         FILE* outfile = fopen(output, "w");
 

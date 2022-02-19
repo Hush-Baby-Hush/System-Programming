@@ -36,16 +36,12 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    //char* input_file = argv[1];
-    //char* output_file = argv[2];
     int mapper_count;
     if (sscanf(argv[5], "%d", &mapper_count) != 1 || mapper_count < 1) {
       print_usage();
       return 1;
     }
 
-    //char* mapper = argv[3];
-    //char* reducer = argv[4];
     int* fd[mapper_count];
     for (int i = 0; i< mapper_count; i++) {
         fd[i] = calloc(2, sizeof(int));

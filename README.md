@@ -28,4 +28,3 @@
 - Multi-core scheduling algorithms
 - Network programming with TCP/IP
 - Security elementary principles and practices (programming practices, protocols and well-known case studies)
-- test

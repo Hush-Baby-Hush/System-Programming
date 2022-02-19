@@ -1,4 +1,5 @@
-// author: Kimmy Liu
+// author: zl32
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

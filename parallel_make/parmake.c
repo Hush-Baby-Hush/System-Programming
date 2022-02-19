@@ -33,6 +33,72 @@ int detect_cycle(void* ptr);
 void* part2(void* ptr);
 
 
+void quu_push(char* ptr) {
+    if (*(int*)dictionary_get(d, ptr) == 1) {
+        return;
+    }
+    int one = 1;
+    dictionary_set(d, ptr, &one);
+
+    vector* neibor = graph_neighbors(g, ptr);
+    VECTOR_FOR_EACH(neibor, 
+        varname, 
+        {quu_push(varname);});
+
+    rule_t* val = (rule_t *)graph_get_vertex_value(g, ptr);
+    val->state = vector_size(neibor);
+
+    if (vector_empty(neibor)) {
+        queue_push(q, ptr);
+    }
+    vector_destroy(neibor);
+}
+
+
+int setup(void* ptr) {
+    vector* vecname = graph_vertices(g);
+
+    int zero = 0;
+    VECTOR_FOR_EACH(vecname, 
+        varname, 
+        {dictionary_set(d, varname, &zero);});
+    vector_destroy(vecname);
+    return detect_cycle(ptr);
+}
+
+int detect_cycle(void* ptr) {
+    if (!dictionary_contains(d, ptr)) {
+        return 0;
+    }
+
+    if (*(int*)dictionary_get(d, ptr) == 1) {
+        return 1;
+    }
+
+    if(*(int*)dictionary_get(d, ptr) == 2) {
+        return 2;
+    }
+
+    vector* neibor = graph_neighbors(g, ptr);
+    size_t total_neibor = vector_size(neibor);
+
+    int one = 1;
+    dictionary_set(d, ptr, &one);
+
+    for (size_t i = 0; i < total_neibor; i++) {
+        void* curr = vector_get(neibor, i);
+        if (detect_cycle(curr) == 1) {
+            vector_destroy(neibor);
+            return 1;
+        }
+    }
+
+    int two = 2;
+    dictionary_set(d, ptr, &two);
+    vector_destroy(neibor);
+    return 0;
+}
+
 
 int parmake(char *makefile, size_t num_threads, char **targets) {
     // good luck!
@@ -105,73 +171,6 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
     return 0;
 }
 
-
-
-void quu_push(char* ptr) {
-    if (*(int*)dictionary_get(d, ptr) == 1) {
-        return;
-    }
-    int one = 1;
-    dictionary_set(d, ptr, &one);
-
-    vector* neibor = graph_neighbors(g, ptr);
-    VECTOR_FOR_EACH(neibor, 
-        varname, 
-        {quu_push(varname);});
-
-    rule_t* val = (rule_t *)graph_get_vertex_value(g, ptr);
-    val->state = vector_size(neibor);
-
-    if (vector_empty(neibor)) {
-        queue_push(q, ptr);
-    }
-    vector_destroy(neibor);
-}
-
-
-int setup(void* ptr) {
-    vector* vecname = graph_vertices(g);
-
-    int zero = 0;
-    VECTOR_FOR_EACH(vecname, 
-        varname, 
-        {dictionary_set(d, varname, &zero);});
-    vector_destroy(vecname);
-    return detect_cycle(ptr);
-}
-
-int detect_cycle(void* ptr) {
-    if (!dictionary_contains(d, ptr)) {
-        return 0;
-    }
-
-    if (*(int*)dictionary_get(d, ptr) == 1) {
-        return 1;
-    }
-
-    if(*(int*)dictionary_get(d, ptr) == 2) {
-        return 2;
-    }
-
-    vector* neibor = graph_neighbors(g, ptr);
-    size_t total_neibor = vector_size(neibor);
-
-    int one = 1;
-    dictionary_set(d, ptr, &one);
-
-    for (size_t i = 0; i < total_neibor; i++) {
-        void* curr = vector_get(neibor, i);
-        if (detect_cycle(curr) == 1) {
-            vector_destroy(neibor);
-            return 1;
-        }
-    }
-
-    int two = 2;
-    dictionary_set(d, ptr, &two);
-    vector_destroy(neibor);
-    return 0;
-}
 
 
 

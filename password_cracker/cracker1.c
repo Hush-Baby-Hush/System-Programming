@@ -5,79 +5,75 @@
 #include "cracker1.h"
 #include "format.h"
 #include "utils.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include "./includes/queue.h"
 #include <pthread.h>
 #include <string.h>
 #include <crypt.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-// task queue
-static queue* tasks;
-// total number of tasks
-static int num_tasks;
-// number of cracked passwords
-static int recovered_num;
 
 
-void* crack_password(void* thread_num) {
-    size_t index = (size_t) thread_num;
+static queue* q_task;
+pthread_mutex_t mux = PTHREAD_MUTEX_INITIALIZER;
+static int total_num;
+static int success;
+
+
+void* crack(void* index_) {
+    // pthread_mutex_lock(&mux);
     char username[9];
-    char hash[14];
+    char password[14];
     char known[9];
-    struct crypt_data cdata;
-    cdata.initialized = 0;
+    size_t index = (size_t) index_;
+    struct crypt_data crypt;
+    crypt.initialized = 0;
+
     char* task = NULL;
     while (true) {
-        task = queue_pull(tasks);
+        task = queue_pull(q_task);
         if (!task) {
             break;
         }
-        // get corresponding parts
-        sscanf(task, "%s %s %s", username, hash, known);
-        // print starting info
+
+        sscanf(task, "%s %s %s", username, password, known);
         v1_print_thread_start(index, username);
-        int prefix_length = getPrefixLength(known);
-        // set to first unknown
-        setStringPosition(prefix_length + known, 0);
-        int hash_count = 0;
-        double start_time = getThreadCPUTime();
-        char* current_hash = NULL;
+        int len_ = getPrefixLength(known);
+        char* ptr = len_ + known;
+        setStringPosition(ptr, 0);
+        double time = getThreadCPUTime();
+
+        int count = 0;
         int fail = 1;
-        // finding solution
+        char* hash = NULL;
         while (1) {
-            current_hash = crypt_r(known, "xx", &cdata);
-            hash_count++;
-            // found solution
-            if (strcmp(current_hash, hash) == 0) {
-                pthread_mutex_lock(&lock);
-                recovered_num++;
-                pthread_mutex_unlock(&lock);
+            hash = crypt_r(known, "xx", &crypt);
+            if (!strcmp(hash, password)) {
+                pthread_mutex_lock(&mux);
+                success++;
+                pthread_mutex_unlock(&mux);
                 fail = 0;
                 break;
             }
-            // increment fail. cannot recover
-            int result = incrementString(prefix_length + known);
-            if (result == 0) {
-                break;
-            }
+            if (!incrementString(ptr)) { break; }
+            count++;
+
         }
-        double time = getThreadCPUTime() - start_time;
-        // print info and free stuff
-        v1_print_thread_result(index, username, known, hash_count, time, fail);
+        double finaltime = getThreadCPUTime() - time;
+        v1_print_thread_result(index, username, known, count, finaltime, fail);
         free(task);
         task = NULL;
     }
+    // pthread_mutex_unlock(&mux);
     return NULL;
 }
+
 
 int start(size_t thread_count) {
     // TODO your code here, make sure to use thread_count!
     // Remember to ONLY crack passwords in other threads
 
-    tasks = queue_create(0);
+    q_task = queue_create(0);
     pthread_t arr[thread_count];
     size_t len = 0;
     char* line = NULL;
@@ -86,30 +82,29 @@ int start(size_t thread_count) {
         if (strlen(line)>0 && line[strlen(line) - 1] == '\n') {
             line[strlen(line) - 1] = '\0';
         }   
-        queue_push(tasks, strdup(line));
-        num_tasks++;
+        queue_push(q_task, strdup(line));
+        total_num++;
     }
 
     free(line);
     
     for(size_t i = 0; i < thread_count; i++) {
-        queue_push(tasks, NULL);
+        queue_push(q_task, NULL);
     }
 
     for(size_t i = 0; i < thread_count; i++) {
-        pthread_create(arr + i, NULL, crack_password, (void*) i + 1);
+        pthread_create(arr + i, NULL, crack, (void*) i + 1);
     }
 
     for(size_t i = 0; i < thread_count; i++) {
         pthread_join(arr[i], NULL);
     }
 
-    v1_print_summary(recovered_num, num_tasks - recovered_num);
+    v1_print_summary(success, total_num - success);
 
-    pthread_mutex_destroy(&lock );
-    queue_destroy(tasks);
+    pthread_mutex_destroy(&mux);
+    queue_destroy(q_task);
 
     return 0; // DO NOT change the return code since AG uses it to check if your
               // program exited normally
 }
-

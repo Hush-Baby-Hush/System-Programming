@@ -40,8 +40,8 @@ int LoOr(char* cmd) {
     size_t firLen = Loc - cmd;
     size_t sedLen = calLen - (firLen + 3);
     char firC [firLen];
-    char sndC [sedLen + 1];
     strncpy(firC, cmd, firLen);
+    char sndC [sedLen + 1];
     strncpy(sndC, (Loc + 3), sedLen);
     firC[firLen - 1] = '\0';
     sndC[sedLen] = '\0';
@@ -58,8 +58,8 @@ int OutReDir(char* cmd) {
     size_t firLen = Loc - cmd;
     size_t sedLen = calLen - (firLen + 2);
     char firC [firLen];
-    char sndC [sedLen + 1];
     strncpy(firC, cmd, firLen);
+    char sndC [sedLen + 1];
     strncpy(sndC, (Loc + 2), sedLen);
     firC[firLen - 1] = '\0';
     sndC[sedLen] = '\0';
@@ -79,8 +79,8 @@ int LoAnd(char* cmd) {
     char* Loc = strstr(cmd, "&&");
     size_t calLen = strlen(cmd);
     size_t firLen = Loc - cmd;
-    size_t sedLen = calLen - (firLen + 3);
     char firC [firLen];
+    size_t sedLen = calLen - (firLen + 3);
     char sndC [sedLen + 1];
     strncpy(firC, cmd, firLen);
     strncpy(sndC, (Loc + 3), sedLen);
@@ -99,12 +99,11 @@ int AppReDir(char* cmd) {
     size_t firLen = Loc - cmd;
     size_t sedLen = calLen - (firLen + 3);
     char firC [firLen];
-    char sndC [sedLen + 1];
     strncpy(firC, cmd, firLen);
+    char sndC [sedLen + 1];
     strncpy(sndC, (Loc + 3), sedLen);
     firC[firLen - 1] = '\0';
     sndC[sedLen] = '\0';
-    // run
     FILE* fd = fopen(sndC, "a");
     int fd_num = fileno(fd);
     int original = dup(fileno(stdout));
@@ -121,18 +120,17 @@ int SepLo(char* cmd) {
     char* Loc = strstr(cmd, ";");
     size_t calLen = strlen(cmd);
     size_t firLen = Loc - cmd;
-    size_t sedLen = calLen - (firLen + 2);
     char firC [firLen + 1];
+    size_t sedLen = calLen - (firLen + 2);
     char sndC [sedLen + 1];
     strncpy(firC, cmd, firLen);
     strncpy(sndC, (Loc + 2), sedLen);
     firC[firLen] = '\0';
     sndC[sedLen] = '\0';
-    
-    int result1 = execute(firC, 1);
-    int result2 = execute(sndC, 1);
+    int ans1 = execute(firC, 1);
+    int ans2 = execute(sndC, 1);
 
-    return result1 && result2;
+    return ans1 && ans2;
 }
 
 
